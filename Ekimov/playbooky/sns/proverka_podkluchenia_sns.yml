@@ -1,0 +1,219 @@
+- name: Запускаю playbook
+  hosts: all
+  become: yes  # Если требуется sudo
+  gather_facts: no
+  vars:
+    user: snsadmin
+
+  tasks:
+    - name: 1. Получение имени узла
+      shell: hostname
+      register: hostname
+
+#    - name: 2. Установлена ли библиотека pexpect
+#      pip:
+#        name: pexpect
+#        state: present
+
+    - name: 3. Проверка статуса подключения
+      shell: /opt/secretnet/bin/snnetctl -s
+      register: check
+      ignore_errors: yes  # Игнорируем ошибки, чтобы продолжить выполнение
+
+    - name: 4. Вывод статуса подключения
+      debug:
+        msg:
+          - "Хост: {{ hostname.stdout }}"
+          - "Статус подключения: {{ check.stdout | replace('\n', ' ') | replace('\r', ' ') | regex_replace('Обновление настроек каждые 60 минут', '') | regex_replace('Удаленное управление', '') | trim }}"
+
+    - name: 5. Перезагрузка службы sn.service
+      ansible.builtin.shell: systemctl restart sn
+      when: '"отключено" in check.stdout'
+
+    - name: 6. Ожидание 15 секунд
+      ansible.builtin.pause:
+        seconds: 15
+
+    - name: 7. Выполнение команды snnetctl с запросом пароля
+      expect:
+        command: "/opt/secretnet/bin/snnetctl -e -u {{ user }} -c sns-cod.udmr.gosdom"
+        responses:
+          "Пароль пользователя": "25@LjcFkbCnf"
+        timeout: 90
+      register: command_output
+      until:
+        - '"Неверный логин или пароль" not in command_output.stdout'
+        - '"Сетевой сервис не запущен" not in command_output.stdout'
+      retries: 3
+      delay: 5
+      when:
+        - '"отключено" in check.stdout'  # Выполняем, если статус отключен
+      ignore_errors: yes
+
+    - name: 7.1 Устанавливаю факты
+      set_fact:
+        command_output2: "{{ command_output.stdout if command_output.stdout is defined else 'Скипнуто' }}"
+
+    - name: 8. Результат подключения
+      debug:
+        msg: "{{ command_output2 | regex_replace('\\n', '') | regex_replace('\r','') | regex_replace(\"Пароль пользователя 'snsadmin': \", '') | regex_replace(\"Пароль пользователя 'regshek': \", '') | regex_replace('\\\\', '') | regex_replace('\"$', '') | trim }}"
+
+    - name: 9. Выполнить iptables -S, если была сетевая ошибка
+      shell: iptables -S  # Выполняем команду iptables -S для отображения правил
+      register: iptables_output  # Сохраняем вывод команды iptables в переменную iptables_output
+      when: "'Сетевая ошибка' in command_output2"
+
+    - name: 10. Вывести правила iptables на экран у которых при подключени "Сетевая ошибка"
+      debug:
+        var: iptables_output.stdout_lines  # Показываем на экране результат команды iptables -S
+      when: "'Сетевая ошибка' in command_output2"  # Выполняется, если в выводе была "Сетевая ошибка"
+
+    - name: 11. Итоговый отчет по хостам  # Подведение итогов для каждого хоста
+      debug:
+        msg:
+          - "Хост: {{ hostname.stdout }}"
+          - "IP-адрес: {{ ansible_host }}"
+          - "Статус подключения: {{ 'подключено' if 'подключено' in check.stdout else 'отключено' }}"
+          - "{{'Результат подключения: ' + command_output.stdout_lines[1] | regex_replace('\"','') if 'отключено' in check.stdout else ''}}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

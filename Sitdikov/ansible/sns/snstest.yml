@@ -1,0 +1,62 @@
+---
+ - name: Перезагрузка службы sn и подключение к серверу
+   hosts: sa
+   become: yes # Если требуется sudo
+   gather_facts: no
+   vars:
+     user: regshek
+     password: Regsheck@123
+   tasks:
+     - name: Полученине имени узла
+       shell: hostname
+       register: hostname
+
+#     - name: Установленна ли библеотека pexpect
+#        pip:
+#         name: pexpect
+#         state: present
+
+     - name: Проверка статуса подключения
+       ansible.builtin.shell: /opt/secretnet/bin/snnetctl -s
+       register: check
+
+     - name: Перезагрузка службы sn
+       ansible.builtin.shell: systemctl restart sn
+       when: '"отключено" in check.stdout_lines[0]'
+
+     - name: Ожидание 10 секунд
+       ansible.builtin.pause:
+         seconds: 10
+
+     - name: Выполнение команды snnetctl с запросом пароля
+       ansible.builtin.expect:
+         command: "/opt/secretnet/bin/snnetctl -e -u {{user}}"
+         responses:
+           "Пароль пользователя": "{{password}}"
+         timeout: 90
+#       retries: 1
+#       until: '"подключено" in output.stdout_lines[0]'
+       register: output
+       ignore_errors: true
+       when: '"отключено" in check.stdout_lines[0]'
+
+#     - name: Если сетевая ошибка
+#       block:
+#         - name: Вывод правил
+#           ansible.builtin.shell: iptables -S
+#           register: rules_iptables
+
+#         - name: Удаление правил и рестарт службы
+#           ansible.builtin.shell: iptables -F;systemctl restart iptables;systemctl stop iptables
+
+#       when: '"Сетевая ошибка" in output.stdout_lines[0]'
+
+     - name: Вывод результата
+       debug:
+         msg:
+           - "{{hostname.stdout}}"
+           - "{{check.stdout}}"
+           - "{{output.stdout | default('Скипнуто')}}"
+
+#      when: '"отключено" in check.stdout_lines[0]'
+

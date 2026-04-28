@@ -1,0 +1,37 @@
+#Перезапуск службы sn и подключение к серверу sns-cod
+---
+- hosts: us
+  become: true
+  gather_facts: true
+  vars:
+    user1: snsadmin
+    user2: regshek
+  tasks:
+
+#  - name: Проверка интерпретатора Python 
+#    debug: 
+#      var: ansible_python_interpreter
+
+  - name: Установленна ли библеотека pexpect
+    pip:
+      name: pexpect
+      state: present
+
+  - name: Перезагрузка SN LSP
+    ansible.builtin.shell: systemctl restart sn
+
+  - name: Ожидание 10 секунд
+    ansible.builtin.pause:
+      seconds: 10
+
+  - name: Подключение к серверу
+    ansible.builtin.expect:
+      command: "/opt/secretnet/bin/snnetctl -e -u {{user1}}"
+      responses:
+        "Пароль пользователя": "192Cfi<tcBhb"
+    register: check
+    ignore_errors: true
+
+  - name: Вывод ошибок snnetctl
+    debug:
+      var: check.stdout_lines

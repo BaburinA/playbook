@@ -1,0 +1,19 @@
+# Удаление IDS-HS-Agent
+---
+- hosts: ASN
+  become: true
+  tasks:
+
+  - name: Purge ids-hs-agent
+    ansible.builtin.apt:
+      name: vipnet-ids-hs-agent
+      state: absent
+#     purge: true
+
+  - name: Recursively remove directory IDSHS /var/log
+    ansible.builtin.file:
+      path: /var/log/idshs
+      state: absent
+
+
+# rm /var/log/idshs

@@ -1,0 +1,57 @@
+---
+- name: Устанока rsa ключей для пользователей без python
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    path: /home/ekimov_vi/playbook
+    lookup_key: "{{ lookup('file', '/home/distribution/pub/id_rsa_'+user+'.pub') }}" # Обязательно указывай путь до ключа
+    user: "ekimov_vi"
+
+  tasks:
+    - name: Создение папки .ssh и добавление rsa ключа в authorized_keys
+      raw: |-
+        # Проверка домашней папки пользователя
+        if ls -d /home/{{user}} > /dev/null 2>&1 ; then
+          # Создание каталога .ssh если он не существует
+          if [ ! -d "{{dir_ssh}}" ]; then
+            mkdir -m 700 {{dir_ssh}}
+            chown {{user}}:{{user}} {{dir_ssh}}
+          fi
+          # Создание файла authorized_keys если он не существует
+          if [ ! -f "{{file_auth}}" ]; then
+            touch {{file_auth}}
+            chmod 600 {{file_auth}}
+            chown {{user}}:{{user}} {{file_auth}}
+          fi
+          # Добавление rsa ключа в файл authorized_keys если его нет
+          if ! grep -q "{{ lookup_key }}" {{ file_auth }}; then
+            echo "{{ lookup_key }}" >> {{ file_auth }} ;
+            echo "ключ добавлен" ;
+          else
+            echo "ключ уже существует" ;
+          fi
+        else
+          echo "{{user}} не найден";
+        fi
+      register: res
+      vars:
+        dir_ssh: /home/{{user}}/.ssh
+        file_auth: /home/{{user}}/.ssh/authorized_keys
+
+    - name: Устанока фактов
+      set_fact:
+        massage: "{{ansible_host}} {{ res.stdout | regex_replace('\\n|\\r','') }}"
+
+    - name: Создание отчета
+      local_action:
+        module: lineinfile
+        path: "{{path}}/{{user}}.csv"
+        line: "{{massage}}"
+        create: yes
+        state: present
+        mode: '0644'
+      delegate_to: localhost  
+
+    - debug:
+        msg: "{{massage}}"

@@ -1,0 +1,72 @@
+---
+- name: Остановка служб, удаление файла и перезапуск
+  hosts: all
+  become: yes  # выполняем задачи с правами суперпользователя
+  tasks:
+    - name: Остановить службу vipnet-ids-hs-watcher
+      systemd:
+        name: vipnet-ids-hs-watcher
+        state: stopped
+
+    - name: Остановить службу vipnet-ids-hs-agent
+      systemd:
+        name: vipnet-ids-hs-agent
+        state: stopped
+
+    - name: Удалить файл snort_out.log
+      shell: rm -f /var/log/idshs/snort_out.log
+      ignore_errors: yes  # игнорировать ошибку, если файл не существует
+
+    - name: Создать символическую ссылку на /dev/null для snort_out.log
+      shell: ln -s /dev/null /var/log/idshs/snort_out.log
+      ignore_errors: yes  # игнорировать ошибку, если ссылка уже существует
+
+    - name: Удалить файл snort_err.log
+      shell: rm -f /var/log/idshs/snort_err.log
+      ignore_errors: yes  # игнорировать ошибку, если файл не существует
+
+    - name: Создать символическую ссылку на /dev/null для snort_err.log
+      shell: ln -s /dev/null /var/log/idshs/snort_err.log
+      ignore_errors: yes  # игнорировать ошибку, если ссылка уже существует
+
+    - name: Удалить файл idshs_snoopy.log
+      shell: rm -f /var/log/idshs/idshs_snoopy.log
+      ignore_errors: yes  # игнорировать ошибку, если файл не существует
+
+    - name: Создать символическую ссылку на /dev/null для idshs_snoopy.log
+      shell: ln -s /dev/null /var/log/idshs/idshs_snoopy.log
+      ignore_errors: yes  # игнорировать ошибку, если ссылка уже существует
+
+    - name: Удалить файл idshs_agent.log
+      shell: rm -f /var/log/idshs/idshs_agent.log
+      ignore_errors: yes  # игнорировать ошибку, если файл не существует
+
+    - name: Создать символическую ссылку на /dev/null для idshs_agent.log
+      shell: ln -s /dev/null /var/log/idshs/idshs_agent.log
+      ignore_errors: yes  # игнорировать ошибку, если ссылка уже существует
+
+    - name: Удалить файл files_monitoring_err.log
+      shell: rm -f /var/log/idshs/files_monitoring_err.log
+      ignore_errors: yes  # игнорировать ошибку, если файл не существует
+
+    - name: Создать символическую ссылку на /dev/null для files_monitoring_err.log
+      shell: ln -s /dev/null /var/log/idshs/files_monitoring_err.log
+      ignore_errors: yes  # игнорировать ошибку, если ссылка уже существует
+
+    - name: Запустить службу vipnet-ids-hs-watcher
+      systemd:
+        name: vipnet-ids-hs-watcher
+        state: started
+
+    - name: Запустить службу vipnet-ids-hs-agent
+      systemd:
+        name: vipnet-ids-hs-agent
+        state: started
+
+    - name: Выполнить команду ls -l /var/log/idshs/snort_out.log и вывести результат
+      command: ls -l /var/log/idshs/
+      register: ls_output  # сохраняем вывод команды в переменную
+
+    - name: Отобразить вывод команды ls -l
+      debug:
+        var: ls_output.stdout  # выводим содержимое переменной

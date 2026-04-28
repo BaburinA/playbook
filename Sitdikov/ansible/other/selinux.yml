@@ -1,0 +1,28 @@
+- name: Выключение selinux
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    file: /etc/selinux/config
+    state: disabled
+
+  tasks:
+    - name: Проверка состояние селинукс
+      command: "grep -E '^SELINUX=' {{file}}"
+      register: res
+      become: no
+
+    - name: Прописывание в {{file}} SELINUX={{state}}
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^SELINUX=(.*)'
+        line: "SELINUX={{state}}"
+      become: yes
+
+    - name: Повторная проверка состояние селинукс
+      command: "grep -E '^SELINUX=' {{file}}"
+      register: res2
+      become: no
+
+    - debug:
+        msg: "До: {{res.stdout}} После: {{res2.stdout}}"

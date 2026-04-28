@@ -1,0 +1,51 @@
+---
+- name: Собрать и сохранить список файлов с хостов в файл на localhost
+  hosts: all
+  become: yes
+  gather_facts: false
+
+  tasks:
+    - name: Поиск всех файлов в /home/ansible-ib
+      ansible.builtin.find:
+        paths: "/"
+        recurse: yes
+        file_type: file
+        get_checksum: no
+      register: found_files
+      ignore_errors: yes
+
+    - name: Сохранить список файлов как факт (для каждого хоста)
+      set_fact:
+        file_list: "{{ found_files.files | map(attribute='path') | list }}"
+
+    # === Этот блок выполняется только один раз на localhost ===
+    - name: Сформировать общий отчёт и сохранить в файл
+      set_fact:
+        output_content: |
+          {% for host in groups['all'] %}
+          === Файлы на хосте: {{ host }} ===
+          {% set files = hostvars[host].file_list | default([]) %}
+          {% if files %}
+          {% for filepath in files %}
+          {{ filepath }}
+          {% endfor %}
+          {% else %}
+          (Не найдено файлов или ошибка доступа)
+          {% endif %}
+
+          {% endfor %}
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Сохранить результат в found_files.txt
+      copy:
+        content: "{{ output_content }}"
+        dest: "found_files.txt"
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Подтверждение
+      debug:
+        msg: "Список файлов сохранён в found_files.txt"
+      delegate_to: localhost
+      run_once: yes

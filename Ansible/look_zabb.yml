@@ -1,0 +1,59 @@
+---
+- hosts: TestHS
+  gather_facts: false
+  become: true
+  tasks:
+
+      - name: Populate service facts
+        ansible.builtin.service_facts:
+
+      - name: Set variables agent
+        set_fact:
+          agent: false
+          agent2: false
+          agent_echo: |
+            UserParameter=service_status[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $?
+            UserParameter=service_found[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $? 
+
+      - name: Status agent2
+        set_fact:
+          agent2: true
+        when: ansible_facts.services["zabbix-agent2.service"] is defined and ansible_facts.services["zabbix-agent2.service"].state == "running"
+
+      - name: Status agent
+        set_fact:
+          agent: true
+        when: ansible_facts.services["zabbix-agent.service"] is defined and ansible_facts.services["zabbix-agent.service"].state == "running"
+
+      - name: Looking config found zabbix-agent
+        ansible.builtin.shell: sed -i 's|UserParameter=service_found|# UserParameter=service_found|g' /etc/zabbix/zabbix_agentd.conf
+        when: agent
+
+      - name: Looking config found zabbix-agent2
+        ansible.builtin.shell: sed -i 's|UserParameter=service_found|# UserParameter=service_found|g' /etc/zabbix/zabbix_agent2.conf
+        when: agent2
+
+      - name: Looking config status zabbix-agent
+        ansible.builtin.shell: sed -i 's|UserParameter=service_status|# UserParameter=service_status|g' /etc/zabbix/zabbix_agentd.conf
+        when: agent
+
+      - name: Looking config status zabbix-agent2
+        ansible.builtin.shell: sed -i 's|UserParameter=service_status|# UserParameter=service_status|g' /etc/zabbix/zabbix_agent2.conf
+        when: agent2
+
+      - name: Change config zabbix-agent2
+        ansible.builtin.shell: echo '{{ agent_echo }}' >>/etc/zabbix/zabbix_agent2.conf
+        when: agent2
+
+      - name: Change config zabbix-agent
+        ansible.builtin.shell: echo '{{ agent_echo }}' >>/etc/zabbix/zabbix_agentd.conf
+        when: agent
+
+      - name: Restart service zabbix-agent2
+        ansible.builtin.shell: systemctl restart zabbix-agent2
+        when: agent2
+
+      - name: Restart service zabbix-agent
+        ansible.builtin.shell: systemctl restart zabbix-agent
+        when: agent
+

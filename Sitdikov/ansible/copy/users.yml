@@ -1,0 +1,35 @@
+users:
+  uszi:
+    - baburin_ag
+    - ekimov_vi
+    - kutergin_ds
+    - orekhov_anv
+    - perminov_na
+    - sitdikov_tr
+    - trofimov_va
+  sa:
+    - churakov_ek
+    - gorlin_ad
+#    - russkikh_an
+#    - russkikh_ka
+    - skvortsov_va
+    - solovev_am
+    - solovev_rv
+    - veldin_kd
+    - zapolskikh_sa
+#    - zykov_vv
+  us:
+    - ardashev_sd
+    - gorodilov_ad
+    - kozhevina_aa
+    - matveev_ad
+    - raevsii_gg
+    - shulakova_ks
+    - skutin_iaka
+    - soloveva_alv
+    - suhih_ku
+    - valov_serv
+  uib:
+    - kopysov_as
+    - pestrikova_ula
+    - rubinovich_sd

@@ -1,0 +1,60 @@
+---
+- name: Создание симолических ссылок на лог idshs
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    input1: yes
+    input2: yes
+    input3: yes
+    input4: yes
+  tasks:
+    - name: Остановка служб    
+      shell: |
+        systemctl stop vipnet-ids-hs-watcher
+        systemctl stop vipnet-ids-hs-agent
+
+    - name: Создание симолической ссылки {{name}}
+      file:
+        state: link
+        dest: '/var/log/idshs/{{name}}'
+        src: '/dev/null'
+        force: yes
+      vars:
+        name: snort_out.log
+      when: input1
+
+    - name: Создание симолической ссылки {{name}}
+      file:
+        state: link
+        dest: '/var/log/idshs/{{name}}'
+        src: '/dev/null'
+        force: yes
+      vars:
+        name: snort_err.log
+      when: input2
+
+    - name: Создание симолической ссылки {{name}}
+      file:
+        state: link
+        dest: '/var/log/idshs/{{name}}'
+        src: '/dev/null'
+        force: yes
+      vars:
+        name: files_monitoring_err.log
+      when: input3
+
+    - name: Создание симолической ссылки {{name}}
+      file:
+        state: link
+        dest: '/var/log/idshs/{{name}}'
+        src: '/dev/null'
+        force: yes
+      vars:
+        name: files_monitoring_out.log
+      when: input4
+
+    - name: Запуск служб    
+      shell: |
+        systemctl start vipnet-ids-hs-watcher
+        systemctl start vipnet-ids-hs-agent

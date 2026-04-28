@@ -1,0 +1,92 @@
+---
+- hosts: CLOUD
+  gather_facts: False
+  tasks:
+
+# is name OS
+
+    - name: Check Dist Version Astra
+      ansible.builtin.stat:
+        path: /etc/astra_version
+      register: astra
+
+    - name: Check Dist Version Alt
+      ansible.builtin.stat:
+        path: /etc/altlinux-release
+      register: alt
+
+    - name: Check Dist Version Debian
+      ansible.builtin.stat:
+        path: /etc/debian_version
+      register: debian
+
+    - name: Check Dist Version RedOs
+      ansible.builtin.stat:
+        path: /etc/redos-release
+      register: redos
+
+    - name: Check Dist Version Centos
+      ansible.builtin.stat:
+        path: /etc/centos-release
+      register: centos
+
+    - name: Check Dist Version Fedora
+      ansible.builtin.stat:
+        path: /etc/fedora-release
+      register: fedora
+
+# copy distrib
+
+    - name: Copy Distrib IDS deb
+      ansible.builtin.copy:
+        src: /home/admin1/Ansible/Repos/ids_linx/vipnet-ids-hs-agent-1.5.2.315-release-x86_64.deb
+        dest: ./vipnet-ids-hs-agent-1.5.2.315-release-x86_64.deb
+        mode: '0644'
+      when: astra.stat.exists==true or debian.stat.exists==true
+
+    - name: Copy Distrib IDS rpm
+      ansible.builtin.copy:
+        src: /home/admin1/Ansible/Repos/ids_linx/vipnet-ids-hs-agent-1.5.2.315-release-x86_64.rpm
+        dest: ./vipnet-ids-hs-agent-1.5.2.315-release-x86_64.rpm
+        mode: '0644'
+      when: alt.stat.exists==true or fedora.stat.exists==true or centos.stat.exists==true or redos.stat.exists==true
+
+    - name: Control install IDS
+      ansible.builtin.stat:
+        path: /var/idshs/idshs_agent.conf
+      register: ids
+
+    - name: Copy Distrib Updater
+      ansible.builtin.copy:
+        src: /home/admin1/Ansible/Repos/ids_linx/updater.py
+        dest: ./updater.py
+        mode: '0777'
+      when: ids.stat.exists==true
+
+# Install new version
+
+    - name: Updater a ids-hs-agent package 
+      ansible.builtin.shell: python3 ./updater.py
+      when: ids.stat.exists==true
+
+    - name: Install a ids-hs-agent
+      ansible.builtin.shell: rpm -i ./vipnet-ids-hs-agent-1.5.2.315-release-x86_64.rpm
+      when: (alt.stat.exists==true or fedora.stat.exists==true or centos.stat.exists==true or redos.stat.exists==true) and ids.stat.exists==false
+
+    - name: Install a ids-hs-agent
+      ansible.builtin.shell: dpkg -i ./vipnet-ids-hs-agent-1.5.2.315-release-x86_64.deb
+      when: (astra.stat.exists==true or debian.stat.exists==true) and ids.stat.exists==false
+
+
+    - name: Activate IDS-HS reconnect to server
+      ansible.builtin.shell: idshs-agent 192.168.34.231
+
+    - name: Start service vipnet-ids-hs-Agent
+      ansible.builtin.service:
+        name: vipnet-ids-hs-agent
+        state: started
+
+    - name: Start service vipnet-ids-hs-Watcher
+      ansible.builtin.service:
+        name: vipnet-ids-hs-watcher
+        state: started

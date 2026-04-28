@@ -1,0 +1,29 @@
+### Установка Drweb-Servers
+---
+- hosts: "TestHosts"
+  become: true
+  tasks:
+
+  - name: "Copy distrib Drweb-CS and key.pem, IDS-HS-agent GZ-packet"
+    ansible.builtin.copy:
+      src: ./Repos/drweb-11.00.2-201912100-esuite-server-unix-linux-x86_64.tar.gz.run.gz
+      dest: /home/admin1/drweb-11.00.2-201912100-esuite-server-unix-linux-x86_64.tar.gz.run.gz
+      mode: '0644'
+
+  - name: Extract szi.tar.gz into ~/
+    ansible.builtin.unarchive:
+      src: /home/admin1/drweb-11.00.2-201912100-esuite-server-unix-linux-x86_64.tar.gz.run.gz
+      dest: /home/admin1/
+      remote_src: yes
+
+  - name: Install Drweb Server
+    ansible.builtin.shell: /home/admin1/drweb-11.00.2-201912100-esuite-server-unix-linux-x86_64.tar.gz.run
+      responses:
+      Question:
+        - Configure sendmail with the existing /etc/mail/sendmail.conf? [Y]: y
+        - Configure sendmail with the existing /etc/mail/sendmail.mc? [Y]: y
+        - Reload the running sendmail now with the new configuration? [Y]: y
+    timeout: 30 
+
+  - name: Config Drweb Server
+# Install Drweb CS next step01

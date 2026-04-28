@@ -1,0 +1,11 @@
+---
+- name: Установка лицензии sns
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - raw: '/opt/securitycode/sns/bin/snlicensectl -c /home/ansible-ib/lic124.lic'
+      register: res
+
+    - debug:
+        msg: "{{res.stdout}}"

@@ -1,0 +1,30 @@
+#плейбук для поиска задачек мультифактора в crontab
+---
+- name: multik
+  gather_facts: no
+  become: yes
+  hosts: all
+  vars:
+    file: /var/spool/cron/root
+    file2: /home/sitdikov_tr/ansible/
+  tasks:
+
+    - name: содержимое crontabs
+      raw: 'crontab -l'
+      register: var
+      ignore_errors: yes
+      ignore_unreachable: yes
+
+    - name: установка фактов
+      set_fact:
+        result: "{{ansible_host}} {{var.msg if var is unreachable else ''.join(var.stdout_lines)}}"
+
+    - name: сохранение в файл
+      local_action:
+        module: lineinfile
+        state: present
+        create: true
+        mode: '0755'
+        dest: '{{file2}}multik.txt'
+        line: '{{result}}'
+

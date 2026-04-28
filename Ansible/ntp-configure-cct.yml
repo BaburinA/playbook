@@ -1,0 +1,28 @@
+# Меняем hosts и src
+---
+# Установи hosts <наименовение группы>
+- hosts: One
+  become: true
+  tasks:
+
+    - name: Install NTP Chrony
+      ansible.builtin.yum:
+        name: chrony
+        state: present
+
+    - name: deploy chrony.conf template
+      template:
+# Заменить в файле chrony.conf.j3 строку  server <адрес по default> iburst
+        src: ./chrony/chrony.conf.j3
+        dest: /etc/chrony/chrony.conf
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+    - name: Restart chronyd
+      service:
+        name: chronyd
+        state: restarted
+
+# pkg_mgr

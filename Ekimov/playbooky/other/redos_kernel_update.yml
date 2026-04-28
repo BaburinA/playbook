@@ -1,0 +1,64 @@
+---
+- name: Обновление ядра до требуемой версии
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    sns_rpm_dir: /home/ansible-ib/kernel_redos_6.1.110
+
+    dependency_rpms:
+
+      - kernel-lt-tools-libs-6.1.110-1.el7.3.x86_64.rpm
+      - kernel-lt-tools-6.1.110-1.el7.3.x86_64.rpm
+      - rtw89-common-20230403-130.el7.noarch.rpm
+      - rtl8821cu-common-5.8.1-131.el7.noarch.rpm
+      - rtl8821ce-common-20230504-115.el7.noarch.rpm
+      - rtl8812au-common-5.6.4.2-9.el7.noarch.rpm
+      - python3-perf-6.1.110-1.el7.3.x86_64.rpm
+      - kernel-lt-headers-6.1.110-1.el7.3.x86_64.rpm
+      - kernel-lt-devel-6.1.110-1.el7.3.x86_64.rpm
+      - kernel-lt-6.1.110-1.el7.3.x86_64.rpm
+
+  tasks:
+    - name: 1. Получаем текущую версию ядра
+      ansible.builtin.command: uname -a
+      register: kernel_version
+
+    - name: 2. Выводим текущую версию ядра
+      ansible.builtin.debug:
+        msg: "Текущее ядро: {{ kernel_version.stdout }}"
+
+    - name: 3. Проверяем, соответствует ли версия ядра требуемой
+      ansible.builtin.set_fact:
+        kernel_supported: "{{ '6.1.110-1.el7.3.x86_64' in kernel_version.stdout }}"
+
+    - name: 4. Копируем RPM-файл ядра, если версия не соответствует
+      ansible.builtin.copy:
+        src: /home/distribution/kernel_redos_6.1.110
+        dest: /home/ansible-ib/
+        remote_src: no
+      # when: not kernel_supported
+
+    - name: Установка зависимостей через dnf
+      ansible.builtin.command:
+        cmd: dnf install --disablerepo=* --allowerasing -y "{{ sns_rpm_dir }}/{{ item }}"
+      loop: "{{ dependency_rpms }}"
+      args:
+        warn: false
+
+    # - name: 6. Перезагружаем хост, если ядро было обновлено
+    #   ansible.builtin.reboot:
+    #   when: not kernel_supported
+
+    # - name: 7. Ждем, пока хост станет доступен после перезагрузки
+    #   ansible.builtin.wait_for_connection:
+    #     timeout: 300
+
+    # - name: 8. Проверяем текущую версию ядра после перезагрузки
+    #   ansible.builtin.shell: uname -a
+    #   register: new_kernel_version
+
+    # - name: 9. Выводим новую версию ядра
+    #   ansible.builtin.debug:
+    #     msg: "Новое ядро: {{ new_kernel_version.stdout }}"

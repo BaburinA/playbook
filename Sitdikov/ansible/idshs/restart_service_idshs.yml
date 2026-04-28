@@ -1,0 +1,12 @@
+- name: restart service idshs
+  hosts: all
+  become: true
+  gather_facts: no
+
+  tasks:
+    - name: Перезаугрзка служб watcher и agent
+      shell: |
+        sudo systemctl stop vipnet-ids-hs-watcher
+        sudo systemctl stop vipnet-ids-hs-agent
+        sudo systemctl start vipnet-ids-hs-watcher
+

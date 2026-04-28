@@ -1,0 +1,62 @@
+# Создание ansible-ib
+---
+- hosts: VNP
+  vars:
+    uusername: ansible-ib
+    upassword: ooM2ufuo02
+  become: true
+  gather_facts: false
+  tasks:
+
+  - name: Check Dist Version Astra
+    ansible.builtin.stat:
+      path: /etc/astra_version
+    register: astra
+
+  - name: Check Dist Version Alt
+    ansible.builtin.stat:
+      path: /etc/altlinux-release
+    register: alt
+
+  - name: Check Dist Version Debian
+    ansible.builtin.stat:
+      path: /etc/debian_version
+    register: debian
+
+  - name: Check Dist Version RedOs
+    ansible.builtin.stat:
+      path: /etc/redos-release
+    register: redos
+
+  - name: Check Dist Version Centos
+    ansible.builtin.stat:
+      path: /etc/centos-release
+    register: centos
+
+  - name: Check Dist Version Fedora
+    ansible.builtin.stat:
+      path: /etc/fedora-release
+    register: fedora
+
+
+
+  - name: Creating user "{{ uusername }}" with admin access
+    user:
+      name: "{{ uusername }}"
+      password: "{{ upassword | password_hash('sha512') }}"
+
+  - name: Append user "{{ uusername }}" for group admin
+    user:
+      name: "{{ uusername }}"
+      groups: astra-admin,astra-console
+    when: astra.stat.exists==true
+
+  - name: Creating pubkey ssh for "{{ uusername }}" user
+    ansible.posix.authorized_key:
+      user: "{{ uusername }}"
+      state: present
+      key: "{{ lookup('file', '/home/ansible-ib/.ssh/id_rsa.pub') }}"
+
+
+#  - name: Expiring password for user "{{ uusername }}"
+#    shell: chage -d 0 "{{ uusername }}"

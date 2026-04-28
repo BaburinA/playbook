@@ -1,0 +1,26 @@
+---
+- name: Проверка версии svm
+  hosts: all
+  gather_facts: no
+  vars:
+    path: /home/sitdikov_tr/ansible/info_svm.csv
+  tasks:
+    - raw: version
+      register: result
+      ignore_errors: yes
+
+    - set_fact:
+        ip: "{{ansible_host}}"
+        massage: "{{inventory_hostname}},{{result.stdout | regex_replace('\\n|\\r',' ')}}"
+
+    - name: Сохранение
+      lineinfile:
+        path: "{{path}}"
+        line: "{{ip}},{{massage}}"
+        create: yes
+        regex: "^{{ip}},.*$"
+        state: present
+      delegate_to: localhost
+
+    - debug:
+        msg: "{{ip}},{{massage}}"

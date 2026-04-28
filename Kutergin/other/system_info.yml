@@ -1,0 +1,38 @@
+---
+- name: Collect Linux system information
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Get OS release information
+      shell: cat /etc/*release*
+      register: os_release
+      changed_when: false
+
+    - name: Get kernel information
+      shell: uname -a
+      register: kernel_info
+      changed_when: false
+
+    - name: Create inventory directory on control machine
+      delegate_to: localhost
+      run_once: true
+      file:
+        path: "{{ playbook_dir }}/system_info"
+        state: directory
+        mode: '0755'
+
+    - name: Save system information to file
+      delegate_to: localhost
+      run_once: true
+      copy:
+        content: |
+          === System Information for {{ inventory_hostname }} ===
+          Collected at: {{ ansible_date_time.iso8601 }}
+          
+          === OS Release Information ===
+          {{ os_release.stdout }}
+          
+          === Kernel Information ===
+          {{ kernel_info.stdout }}
+        dest: "{{ playbook_dir }}/system_info/{{ inventory_hostname }}_system_info.txt"
+        mode: '0644'

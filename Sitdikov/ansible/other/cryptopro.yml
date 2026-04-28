@@ -1,0 +1,48 @@
+---
+- name: Проверка версии крипто про
+  hosts: all
+  become: no
+  gather_facts: no
+  vars:
+    ansible_user: ansible-ib
+    ansible_ssh_private_key_file: /home/ansible-ib/.ssh/id_rsa
+    path: /home/sitdikov_tr/ansible/readyinfo/ #Путь до файла (куда хочешь сохранить)
+
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+    - name: Проверка номера лицухи крипто про
+      raw: /opt/cprocsp/sbin/amd64/cpconfig -license -view
+      register: ver
+      ignore_errors: true
+      ignore_unreachable: true
+
+    #- name: Проверка номера лицухи крипто про для 32 разрадных систем
+    #  raw: /opt/cprocsp/sbin/ia32/cpconfig -license -view
+    #  register: ver2
+    #  ignore_errors: true
+
+#    - debug:
+#        msg: "{{ver}}"
+
+    - name: Сохранение результат в переменную
+      set_fact:
+        output_massage: "{{ ansible_host }},{{ ver.msg | regex_replace('\\n',' ') if ver is unreachable else ver.stdout | regex_replace('\\r|\\n',' ') if 'License' in ver.stdout}}"
+      ignore_unreachable: true
+
+    - name: Сохранение в {{path}}
+      local_action:
+        module: lineinfile
+        line: "{{output_massage}}"
+        dest: "{{path}}{{inventory_file | basename | lower}}.csv"
+        mode: "0755"
+        create: true
+      when: input | default('n') == 'y'
+
+    - name: Вывод информации
+      debug:
+        msg: "{{output_massage}}"
+

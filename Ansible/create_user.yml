@@ -1,0 +1,9 @@
+# Создание пользователя redcheck
+---
+- hosts: Drweb-S
+  become: true
+  user: admin1
+  tasks:
+
+  - name: Add user to remote hosts
+    user: name=redcheck groups=sudo shell=/bin/bash password=$6$Yxs9x2BAnJOjAWvk$p7688CFJYb/V/ddA78HKypi6dBCETlI9QO6qWPyrxBpnBEpRYPx0Qxj5DAuSi9cxZRkrQs4W88qtOQsI2nUlF0

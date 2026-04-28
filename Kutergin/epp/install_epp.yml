@@ -1,0 +1,245 @@
+- name: Установка idshs
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars_prompt:
+    - name: "remove_epp"
+      prompt: "Удалить endpoint-protection-agent, если установлен? (y/n)"
+      private: no
+      default: "n"
+      # Преобразуем в boolean для удобства
+  vars:
+    way: '/home/distribution/szi-for-linux/EPP/'
+    way2: '/home/ansible-ib/'
+    server: "192.168.34.236"
+    epp_pass: "dV2ShY8c$"
+    mass:
+      - pack: EPP_x86-64_RU_1.7.1.1848.deb
+        manager: 'dpkg -i '
+        family:
+          - 'Debian'
+          - 'Ubuntu'
+          - 'Astra Linux'
+      - pack: EPP_x86-64_RU_1.7.1.1848.rpm
+        manager: 'rpm -i '
+        family:
+          - 'REDOS'
+          - 'RedHat'
+          - 'Centos'
+    redos_rpm:
+      - python3-ptyprocess-0.5.2-5.el7.noarch.rpm
+      - python3-pexpect-4.7.0-2.el7.noarch.rpm
+
+    astra_dpkg:
+      - python3-pexpect_4.8.0-4_all.deb
+      - python3-ptyprocess_0.7.0-5_all.deb
+
+
+  pre_tasks:
+    - name: Преобразуем remove_epp в boolean
+      set_fact:
+        should_remove_epp: "{{ remove_epp | lower == 'y' }}"
+
+    - name: Собираю дополнительный факт
+      setup:
+        filter: ansible_os_family
+      become: no
+
+    - name: Получение содержимого /etc/os-release
+      command: cat /etc/os-release
+      register: os_release
+      changed_when: false
+      ignore_errors: true
+
+    - name: Определить, является ли система RED OS 8
+      set_fact:
+        is_redos8: "{{ os_release.stdout is defined and (os_release.stdout | regex_search('^VERSION_ID=\"?8', multiline=True) is not none) }}"
+      when: os_release.stdout is defined
+
+    # Удаление EPP только при согласии пользователя
+    - name: Проверка, установлен ли endpoint-protection-agent (только реально установленные)
+      shell: |
+        if command -v dpkg >/dev/null 2>&1; then
+          if dpkg-query -W -f='${Status}' endpoint-protection-agent 2>/dev/null | grep -q "^install ok installed$"; then
+            echo "installed"
+          else
+            echo "not installed"
+          fi
+        elif command -v rpm >/dev/null 2>&1; then
+          if rpm -q endpoint-protection-agent >/dev/null 2>&1; then
+            echo "installed"
+          else
+            echo "not installed"
+          fi
+        else
+          echo "not installed"
+        fi
+      register: package_check
+      changed_when: false
+      when: should_remove_epp
+
+    - name: Удаление endpoint-protection-agent
+      command: |
+        {{ 'apt purge -y' if ansible_os_family in ['Debian', 'Ubuntu', 'Astra Linux'] else 'dnf remove -y' }}
+        endpoint-protection-agent
+      args:
+        warn: false
+      when:
+        - should_remove_epp
+        - package_check.stdout == "installed"
+
+  tasks:
+    # ----------------- УДАЛЕНИЕ IDSHS -----------------
+    - name: Проверка, установлен ли vipnet-ids-hs-agent
+      shell: |
+        if command -v dpkg >/dev/null; then
+          dpkg -l | grep -q vipnet-ids-hs-agent && echo "installed" || echo "not installed"
+        elif command -v rpm >/dev/null; then
+          rpm -qa | grep -q vipnet-ids-hs-agent && echo "installed" || echo "not installed"
+        else
+          echo "not installed"
+        fi
+      register: ids_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Удаление vipnet-ids-hs-agent
+      command: |
+        {{ 'apt purge -y ' if ansible_os_family in ['Debian', 'Ubuntu', 'Astra Linux'] else 'dnf remove -y' }}
+        vipnet-ids-hs-agent
+      args:
+        warn: false
+      when:
+        - ids_check.stdout == "installed"
+
+    # ----------------- УСТАНОВКА EPP -----------------
+    # Если не удаляли, проверяем ещё раз, установлен ли EPP (для пропуска установки)
+    - name: Повторная проверка, установлен ли endpoint-protection-agent (если не удаляли)
+      shell: |
+        if command -v dpkg >/dev/null 2>&1; then
+          if dpkg-query -W -f='${Status}' endpoint-protection-agent 2>/dev/null | grep -q "^install ok installed$"; then
+            echo "installed"
+          else
+            echo "not installed"
+          fi
+        elif command -v rpm >/dev/null 2>&1; then
+          if rpm -q endpoint-protection-agent >/dev/null 2>&1; then
+            echo "installed"
+          else
+            echo "not installed"
+          fi
+        else
+          echo "not installed"
+        fi
+      register: package_check_final
+      changed_when: false
+      when: not should_remove_epp | default(false)
+
+    - name: Пропуск установки - EPP уже установлен
+      debug:
+        msg: "Endpoint Protection Agent уже установлен, пропускаем установку"
+      when:
+        - (should_remove_epp | default(false)) == false
+        - package_check_final.stdout == "installed"
+
+    # ----------------- ЗАВИСИМОСТИ -----------------
+    - name: Проверить наличие python3-pexpect
+      ansible.builtin.command: rpm -q python3-pexpect
+      register: rpm_result
+      failed_when: false
+      changed_when: false
+      when:
+        - ansible_os_family in ['REDOS'] 
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Статус python3-pexpect 
+      ansible.builtin.debug:
+        msg: "python3-pexpect: {{ 'Установлен' if rpm_result.rc == 0 else 'Не установлен' }}"
+      when:
+        - ansible_os_family in ['REDOS']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Копируем файлы python3-ptyprocess astra
+      ansible.builtin.copy:
+        src: /home/distribution/python3-ptyprocess_0.7.0-5_all.deb
+        dest: /home/ansible-ib/
+      when: 
+        - ansible_os_family in ['Astra Linux']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Копируем файлы Python3-pexpect astra
+      ansible.builtin.copy:
+        src: /home/distribution/python3-pexpect_4.8.0-4_all.deb
+        dest: /home/ansible-ib/
+      when: 
+        - ansible_os_family in ['Astra Linux']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Копируем файлы python3-ptyprocess redos
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/sns-rpms/python3-ptyprocess-0.5.2-5.el7.noarch.rpm
+        dest: /home/ansible-ib/
+      when: 
+        - ansible_os_family in ['REDOS']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+        - not is_redos8 | default(false)
+        - rpm_result.rc != 0
+
+    - name: Копируем файлы Python3-pexpect redos
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/sns-rpms/python3-pexpect-4.7.0-2.el7.noarch.rpm
+        dest: /home/ansible-ib/
+      when: 
+        - ansible_os_family in ['REDOS']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+        - not is_redos8 | default(false)
+        - rpm_result.rc != 0
+
+    - name: Установка зависимостей через dnf
+      ansible.builtin.command:
+        cmd: dnf install --disablerepo=* --allowerasing -y "/home/ansible-ib/{{ item }}"
+      loop: "{{ redos_rpm }}"
+      when: 
+        - ansible_os_family in ['REDOS']
+        - (should_remove_epp or package_check_final.stdout != "installed")
+        - not is_redos8 | default(false)
+        - rpm_result.rc != 0
+      args:
+        warn: false 
+
+    # ----------------- КОПИРОВАНИЕ И УСТАНОВКА EPP -----------------
+    - name: Копирование дистрибутива EPP
+      copy:
+        src: '{{ way }}{{ item.pack }}'
+        dest: '{{ way2 }}{{ item.pack }}'
+      loop: '{{ mass }}'
+      when: 
+        - ansible_os_family in item.family 
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Установка epp 1.7.1p
+      shell: '{{ item.manager }}{{ way2 }}{{ item.pack }}'
+      loop: '{{ mass }}'
+      when: 
+        - ansible_os_family in item.family 
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Смена пароля admin (в консоли)
+      expect:
+        command: /opt/epp-agent/bin/epp_mc_cli --login admin users update-password --login admin
+        responses:
+          Password: "admin"
+          New password: "{{ epp_pass }}"
+          confirm new password: "{{ epp_pass }}"
+      when: 
+        - (should_remove_epp or package_check_final.stdout != "installed")
+
+    - name: Подключение к серверу {{ server }}
+      expect:
+        command: /opt/epp-agent/bin/epp_mc_cli --login=admin server set-address {{ server }}
+        responses:
+          Password: "{{ epp_pass }}"
+      when: 
+        - ansible_os_family in ['Debian', 'Ubuntu', 'Astra Linux', 'REDOS', 'RedHat', 'Centos'] 
+        - (should_remove_epp or package_check_final.stdout != "installed")

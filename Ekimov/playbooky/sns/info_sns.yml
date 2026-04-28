@@ -1,0 +1,58 @@
+- name: Выполнение нескольких команд с sudo и сбор результатов
+  hosts: all
+  become: yes
+  gather_facts: no  # Сначала собираются все факты
+  tasks:
+    - name: Проверка версии ядра
+      raw: uname -rv
+      register: core
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Чтение файла secretnet-release
+      ansible.builtin.shell: |
+        cat /opt/securitycode/sns/etc/secretnet-release || cat /opt/secretnet/etc/secretnet-release
+      register: secretnet_release_output
+      failed_when: false  # Игнорируем ошибку, если она случится
+
+    - name: Выполнение snnetctl -s
+      ansible.builtin.shell: |
+        /opt/securitycode/sns/bin/snnetctl -s || /opt/secretnet/bin/snnetctl -s
+      register: snnetctl_output
+      failed_when: false  # Игнорируем ошибку, если она случится
+
+    - name: Выполнение snconnctl -s
+      ansible.builtin.command:
+        cmd: /opt/securitycode/sns/bin/snconnctl -s
+      register: snconnctl_output
+      failed_when: false  # Игнорируем ошибку, если она случится
+
+    - name: Получение имени хоста
+      ansible.builtin.command:
+        cmd: hostname
+      register: hostname_output
+
+    - name: Объединение всех результатов в одну строку
+      ansible.builtin.set_fact:
+        result: >-
+          {% if snconnctl_output.rc == 0 %}
+            {{ hostname_output.stdout }}, {{ ansible_host }}, {{ secretnet_release_output.stdout | default('') }},
+            {{ core.stdout | regex_replace('\\n', '') | default('') | regex_replace('#60-Ubuntu', '') | regex_replace('#1', '') | regex_replace('SMP.*', '') }},
+            {{ snnetctl_output.stdout | default('') }},
+            {{ snconnctl_output.stdout | default('') }}
+          {% else %}
+            {{ hostname_output.stdout }}, {{ ansible_host }}, {{ secretnet_release_output.stdout | default('') }},
+            {{ core.stdout | regex_replace('\\n', '') | default('') | regex_replace('#60-Ubuntu', '') | regex_replace('#1', '') | regex_replace('SMP.*', '') }},
+            {{ snnetctl_output.stdout | default('') }},
+            {{ snconnctl_output.stderr | default('') }}
+          {% endif %}
+
+    - name: Печать всех результатов через запятую
+      ansible.builtin.debug:
+        msg: "{{ result | regex_replace('[\n\r]', ' ') |  regex_replace('Введите учетные данные администратора безопасности.*?Настройки успешно сохранены', '') | regex_replace('\\+[-\\+]+\\+', '') | regex_replace('\\|', '') | regex_replace('\\s+', ' ') | regex_replace('Обновление настроек каждые 60 минут|Настройки соединения с сервером Название агента:|Описание агента: IP Адрес: 192.168.131.8 Порт: 443|Настройки соединения с сервером', '') | trim }}"
+
+    - name: Запись результата в файл на локальной машине
+      ansible.builtin.shell:
+        cmd: "echo '{{ result | regex_replace('[\n\r]', ' ') | regex_replace('Введите учетные данные администратора безопасности.*?Настройки успешно сохранены', '') | regex_replace('\\+[-\\+]+\\+', '') | regex_replace('\\|', '') | regex_replace('\\s+', ' ') | regex_replace('Обновление настроек каждые 60 минут|Настройки соединения с сервером Название агента:|Описание агента: IP Адрес: 192.168.131.8 Порт: 443|Настройки соединения с сервером', '') | trim }}' >> /home/ekimov_vi/sns_info.csv"
+      delegate_to: localhost
+      

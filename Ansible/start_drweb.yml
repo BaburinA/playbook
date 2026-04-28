@@ -1,0 +1,24 @@
+# Установка агентов Drweb
+---
+- hosts: DrwebOGV
+  gather_facts: false
+  become: true
+  tasks:
+
+
+# отключаем станцию от сервера
+#  - name: Disconnect old  server Drweb
+#    ansible.builtin.shell: drweb-ctl esd -d
+
+#  - name: Connect new  server Drweb
+#    ansible.builtin.shell: sudo drweb-ctl esc 192.168.32.205  --Cert ./cer.pem
+#    ansible.builtin.shell: drweb-ctl esc 91.230.91.5:2193  --Cert ./cer.pem
+
+  - name: Restarting WS Drweb
+    ansible.builtin.shell: sudo systemctl restart drweb-configd
+
+
+
+
+
+

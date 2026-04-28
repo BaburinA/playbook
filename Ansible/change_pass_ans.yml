@@ -1,0 +1,44 @@
+# Создание ansible-ib
+---
+- hosts: KSC
+  vars:
+    uusername: ansible-ib
+    upassword: '$$ooM2ufuo044'
+    ukey_pub: 'id_rsa.pub'
+  become: true
+  gather_facts: false
+  tasks:
+
+
+#  - name: Change pass user "{{ uusername }}" with admin access
+#    user:
+#      name: "{{ uusername }}"
+#      update_password: always
+#      password: "{{ upassword | password_hash('sha512') }}"
+
+  - name: Creating pubkey ssh for "{{ uusername }}" user
+    ansible.posix.authorized_key:
+      user: "{{ uusername }}"
+      state: present
+#      key: "{{ lookup('file', '/home/ansible-ib/.ssh/id_rsa.pub') }}"
+      key: "{{ lookup('file', '/home/ansible-ib/.ssh/{{ ukey_pub }}') }}"
+
+#  - name: Configure sshd
+#    lineinfile:
+#      path: "/etc/ssh/sshd_config"
+#      regex: "^(#)?{{item.key}}"
+#      line: "{{item.key}} {{item.value}}"
+#      state: present
+#    loop:
+#      - { key: "PermitRootLogin", value: "no" }
+#      - { key: "PasswordAuthentication", value: "no" }
+##    notify:
+##     - { restart sshd }
+#  - name: Enable and restart sshd service
+#    service:
+#      name: sshd
+#      state: restarted
+
+#End of file
+#Author - Baburin_AG
+

@@ -1,0 +1,19 @@
+### Create function zabbix-agent for drweb-agent status
+---
+- hosts: DirUM
+  gather_facts: false
+  become: true
+  tasks:
+
+  - name: Copy Conf for zabbix agent to drweb-agent status
+    ansible.builtin.copy:
+      src: /home/ansible-ib/Ansible/Repos/szi_status.conf
+###      dest: /etc/zabbix/zabbix_agentd.d/szi_status.conf  ### RedOS
+###      dest: /etc/zabbix/zabbix_agentd.conf.d/szi_status.conf   ### Astra
+      dest: /etc/zabbix/zabbix_agent2.d/szi_status.conf   ### Astra
+      mode: '0644'
+
+  - name: Restart zabbix-agent
+    ansible.builtin.shell: systemctl restart zabbix-agent2
+    
+    

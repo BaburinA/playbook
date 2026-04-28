@@ -1,0 +1,162 @@
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "groupid": "1",
+            "name": "Templates"
+        },
+        {
+            "groupid": "2",
+            "name": "Linux servers"
+        },
+        {
+            "groupid": "4",
+            "name": "Zabbix servers"
+        },
+        {
+            "groupid": "5",
+            "name": "Discovered hosts"
+        },
+        {
+            "groupid": "6",
+            "name": "Virtual machines"
+        },
+        {
+            "groupid": "7",
+            "name": "Hypervisors"
+        },
+        {
+            "groupid": "117",
+            "name": "idshs log"
+        },
+        {
+            "groupid": "121",
+            "name": "SVM"
+        },
+        {
+            "groupid": "123",
+            "name": "Logstash"
+        },
+        {
+            "groupid": "12",
+            "name": "Templates/Applications"
+        },
+        {
+            "groupid": "13",
+            "name": "Templates/Databases"
+        },
+        {
+            "groupid": "14",
+            "name": "Templates/Virtualization"
+        },
+        {
+            "groupid": "124",
+            "name": "VM Vipnet СЗИ Linux"
+        },
+        {
+            "groupid": "19",
+            "name": "DrWeb"
+        },
+        {
+            "groupid": "20",
+            "name": "VM Vipnet СЗИ"
+        },
+        {
+            "groupid": "22",
+            "name": "DrWebAPI"
+        },
+        {
+            "groupid": "24",
+            "name": "SNS_UGV"
+        },
+        {
+            "groupid": "25",
+            "name": "Vip Net IDS HS"
+        },
+        {
+            "groupid": "43",
+            "name": "Drweb-Agent SRV"
+        },
+        {
+            "groupid": "44",
+            "name": "Drweb-Agent SRV DB"
+        },
+        {
+            "groupid": "46",
+            "name": "NewVM"
+        },
+        {
+            "groupid": "29",
+            "name": "Data center CСT GIS Win"
+        },
+        {
+            "groupid": "49",
+            "name": "Подрядчики"
+        },
+        {
+            "groupid": "45",
+            "name": "Подрядчики Windows"
+        },
+        {
+            "groupid": "48",
+            "name": "Подрядчики Linux"
+        },
+        {
+            "groupid": "50",
+            "name": "АРМ ЦЦТ (подлесная)"
+        },
+        {
+            "groupid": "112",
+            "name": "AD DC"
+        },
+        {
+            "groupid": "113",
+            "name": "Redos Secure"
+        },
+        {
+            "groupid": "115",
+            "name": "Audit АВЗ"
+        },
+        {
+            "groupid": "23",
+            "name": "DrWeb SNMP"
+        },
+        {
+            "groupid": "30",
+            "name": "Drweb DB Postrges"
+        },
+        {
+            "groupid": "31",
+            "name": "EtalonPass"
+        },
+        {
+            "groupid": "32",
+            "name": "Drweb SLA"
+        },
+        {
+            "groupid": "34",
+            "name": "АРМ ЦЦТ (свердлова)"
+        },
+        {
+            "groupid": "57",
+            "name": "Data center GIS CB"
+        },
+        {
+            "groupid": "26",
+            "name": "Data center CCT GIS"
+        },
+        {
+            "groupid": "94",
+            "name": "Data center GIS CB/Prom_app"
+        },
+        {
+            "groupid": "95",
+            "name": "Data center GIS CB/Razrab_app"
+        },
+        {
+            "groupid": "96",
+            "name": "Data center GIS CB/Test_app"
+        }
+    ],
+    "id": 1
+}

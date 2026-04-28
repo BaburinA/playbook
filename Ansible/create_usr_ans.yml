@@ -1,0 +1,10 @@
+# Создание пользователя redcheck
+---
+- hosts: Drweb-S
+  gather_facts: false
+  become: true
+  user: admin1
+  tasks:
+
+  - name: Add user to remote hosts
+    user: name=ansible-ib groups=sudo shell=/bin/bash password=$6$Yxs9x2BAnJOjAWvk$p7688CFJYb/V/ddA78HKypi6dBCETlI9QO6qWPyrxBpnBEpRYPx0Qxj5DAuSi9cxZRkrQs4W88qtOQsI2nUlF0

@@ -1,0 +1,54 @@
+# Инсталяция IDS-HS-Agent
+---
+- hosts: TestHosts
+  become: true
+  tasks:
+
+  - name: Copy distrib  IDS-HS-agent
+    ansible.builtin.copy:
+      src: ./Repos/ids.tar.gz
+      dest: /home/baburin_ag/ids.tar.gz
+      mode: '0644'
+
+  - name: Extract szi.tar.gz into ~/
+    ansible.builtin.unarchive:
+      src: /home/baburin_ag/ids.tar.gz
+      dest: /home/baburin_ag/
+      remote_src: yes
+
+#  - name: Install a ids-hs-agent.deb package from the internet
+#    ansible.builtin.apt:
+#      deb: /home/baburin_ag/ids/vipnet-ids-hs-agent-1.5.0.223-x86_64.deb
+
+  - name: Install a ids-hs-agent.deb package from the internet
+    ansible.builtin.shell: dpkg -i /home/baburin_ag/ids/vipnet-ids-hs-agent-1.5.0.223-x86_64.deb
+
+
+  - name: Activate IDS-HS connect to server
+    ansible.builtin.shell: idshs-agent 192.168.252.221
+
+  - name: Copy config LogRotate IDS-HS
+    ansible.builtin.copy:
+      src: /home/baburin_ag/ids/vipnet-ids-hs-agent
+      dest: /etc/logrotate.d/vipnet-ids-hs-agent
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Restart service LogRotate
+    ansible.builtin.service:
+      name: logrotate
+      state: restarted
+
+  - name: Restart service vipnet-ids-hs
+    ansible.builtin.service:
+      name: vipnet-ids-hs-agent
+      state: started
+
+  - name: Restart service vipnet-ids-hs
+    ansible.builtin.service:
+      name: vipnet-ids-hs-watcher
+      state: started
+
+
+

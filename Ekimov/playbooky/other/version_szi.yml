@@ -1,0 +1,141 @@
+---
+- name: Инвентаризация СЗИ на хостах
+  hosts: all
+  become: no
+  gather_facts: no
+  vars:
+    path: /home/ekimov_vi/
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+    - name: Проверка операционной системы
+      raw: cat /etc/os-release | grep PRETTY
+      register: nameos
+      ignore_errors: yes
+      failed_when: false  
+
+    - name: Проверка версии ядра
+      raw: uname -rv
+      register: core
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка версии klnagent64
+      shell: |
+        if command -v dpkg-query > /dev/null; then
+          dpkg-query -W -f='${Version}' klnagent64 || echo "klnagent64 не найден"
+        elif command -v rpm > /dev/null; then
+          rpm -q --queryformat '%{VERSION}-%{RELEASE}\n' klnagent64 || echo "klnagent64 не найден"
+        fi
+      register: ver01
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка kesl
+      shell: |
+        if command -v dpkg-query > /dev/null; then
+          dpkg-query -W -f='${Version}' kesl || echo "kesl не найден"
+        elif command -v rpm > /dev/null; then
+          rpm -q --queryformat '%{VERSION}-%{RELEASE}\n' kesl || echo "kesl не найден"
+        fi
+      register: kesl
+      ignore_errors: yes
+
+    - name: Проверка версии Light Agent
+      become: yes
+      shell: cat /opt/kaspersky/ksvla-agent/bin/version.info
+      register: ver04
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка si.agent 
+      become: yes
+      shell: cat /var/siagent/si.version
+      register: ver05
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка версии Dr.Web
+      raw: drweb-ctl --version
+      register: ver2
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка версии СНС
+      shell: |
+        if [ -f /opt/secretnet/etc/secretnet-release ]; then
+          cat /opt/secretnet/etc/secretnet-release
+        elif [ -f /opt/securitycode/sns/etc/secretnet-release ]; then
+          cat /opt/securitycode/sns/etc/secretnet-release
+        else
+          echo ""
+        fi
+      register: ver02
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка версии IDS (только номер версии)
+      shell: idshs-agent -V | grep -oP 'version:\s*\K.*'
+      register: ver3
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Проверка номера лицензии КриптоПро
+      raw: /opt/cprocsp/sbin/amd64/cpconfig -license -view
+      register: ver07
+      ignore_errors: true
+
+    - name: Hostname
+      shell: hostname
+      register: ver06
+      ignore_errors: yes
+
+    - name: Формирование строки для сохранения
+      set_fact:
+        ip: "{{ansible_host}}"
+        output_message: "{{','.join([
+          ver06.stdout.split('.')[0] | default('') | trim,
+          nameos.stdout | regex_replace('PRETTY_NAME=\"|\"','') | default('Не установлено') | trim,
+          core.stdout | regex_replace('\\n', '') | default('') | regex_replace('#60-Ubuntu', '') | regex_replace('#1', '') | regex_replace('SMP.*', '') | trim,
+          ver01.stdout | regex_replace('\\n', ' ') | regex_replace('klnagent64 не найден|не установлен|пакет klnagent64', '') | default('') | trim,
+          kesl.stdout | regex_replace('\\n', '') | regex_replace('пакет kesl не установленkesl не найден', '') | regex_replace('kesl не найден', '') | default('') | trim,
+          ver04.stdout | regex_replace('\\n', ' ') | default('') | trim,
+          ver3.stdout | regex_replace('\\n', '') | default('') | trim,
+          ver2.stdout | regex_replace('bash: drweb-ctl: команда не найдена', '') | regex_replace('bash: строка 1: drweb-ctl: команда не найдена', '') | regex_replace('\\n', ' ') | default('') | trim,
+          ver02.stdout | regex_replace('\\n', '') | default('') | trim,
+          ver05.stdout | regex_replace('\\n', '') | default('') | trim,
+          ver07.stdout | regex_replace('\\n', '') | regex_replace('\\n',' ') | regex_replace('\\r|\\n',' ') | regex_replace('bash: строка 1: /opt/cprocsp/sbin/amd64/cpconfig: No such file or directory',' ') | default('') | trim
+        ])}}"
+
+    - name: Проверка существования файла и добавление заголовков
+      local_action:
+        module: stat
+        path: "{{ path }}info_all_hosts.csv"
+      register: file_stat
+
+    - name: Добавление заголовков в файл
+      local_action:
+        module: lineinfile
+        dest: "{{ path }}info_all_hosts.csv"
+        line: "Ip,Hostname,OS,Ядро,Klnagent,Kesl,Light,Idshs,Drweb,Sns,Siagent,cryptopro"
+        create: yes  # Создает файл, если он не существует
+        mode: "0755"
+      when: file_stat.stat.exists == false or file_stat.stat.size == 0
+
+    - name: Сохранение в {{path}}
+      local_action:
+        module: lineinfile
+        regexp: "^{{ip}}(\\s|$|,)"
+        line: "{{ip}},{{output_message}}"
+        dest: "{{path}}info_all_hosts.csv"
+        insertafter: EOF
+        mode: "0755"
+        create: true
+      when: input | default('n') == 'y'
+
+    - name: Вывод результата в debug
+      debug:
+        msg: "{{ip}},{{ output_message }}"

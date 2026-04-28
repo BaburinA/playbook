@@ -1,0 +1,33 @@
+---
+- hosts: all
+  become: no
+  gather_facts: no
+  vars:
+    path: /home/sitdikov_tr/out3.txt
+    server: 192.168.255.200:7090
+  tasks:
+    - raw: 'hostname -s'
+      register: hostname
+
+    - raw: 'drweb-ctl cfshow | grep MeshD.EngineUplink'
+      register: out
+
+    - raw: 'drweb-ctl cfset MeshD.EngineUplink {{server}}'
+      when: server not in out.stdout
+      become: yes
+
+    - raw: 'drweb-ctl cfshow | grep MeshD.EngineUplink'
+      register: out2
+
+    - set_fact:
+        ip: "{{ansible_host}}"
+
+    - name: Сохранение в {{path}}
+      lineinfile:
+        regexp: "^{{ip}}"
+        line: "{{ip}} {{hostname.stdout | regex_replace('\\n|\\r','')}} {{out.stdout | regex_replace('\\n|\\r','')}} {{out2.stdout | regex_replace('\\n|\\r','')}}"
+        dest: "{{ path }}"
+        mode: "0757"
+        create: true
+      delegate_to: localhost
+      # when: (input | default('no') == 'yes')

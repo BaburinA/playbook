@@ -1,0 +1,21 @@
+---
+- name: Проверка подключения к серверу sns
+  hosts: all
+  become: yes # 
+  gather_facts: no
+  tasks:
+
+    - name: Полученине имя хоста
+      ansible.builtin.shell: hostname
+      register: hostname
+
+    - name: Проверка статуса подключения snlsp к серерву sns
+      ansible.builtin.shell: /opt/secretnet/bin/snnetctl -s
+      register: check
+
+    - name: Вывод результата
+      ansible.builtin.debug:
+        msg:
+          - "{{hostname.stdout}}"
+          - "{{check.stdout_lines}}"
+      when: '"отключено" in check.stdout'

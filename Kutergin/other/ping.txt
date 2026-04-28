@@ -1,0 +1,25 @@
+192.168.70.13 us Failed to connect to the host via ssh: ssh: connect to host 192.168.70.13 port 22: Connection timed out
+192.168.70.13 us Failed to connect to the host via ssh: ssh: connect to host 192.168.70.13 port 22: Connection timed out
+192.168.70.2 us Failed to connect to the host via ssh: ssh: connect to host 192.168.70.2 port 22: Connection timed out
+192.168.70.140 uszi Failed to connect to the host via ssh: ssh: connect to host 192.168.70.140 port 22: Connection timed out
+192.168.70.134 uszi Failed to connect to the host via ssh: ssh: connect to host 192.168.70.134 port 22: Connection timed out
+192.168.70.67 sa Failed to connect to the host via ssh: ssh: connect to host 192.168.70.67 port 22: Connection timed out
+192.168.70.68 sa Failed to connect to the host via ssh: ssh: connect to host 192.168.70.68 port 22: Connection refused
+192.168.70.72 sa Failed to connect to the host via ssh: ssh: connect to host 192.168.70.72 port 22: Connection timed out
+192.168.70.165 uib Failed to connect to the host via ssh: ssh: connect to host 192.168.70.165 port 22: Connection timed out
+192.168.111.11 buh Failed to connect to the host via ssh: ssh: connect to host 192.168.111.11 port 22: Connection timed out
+192.168.111.213 buh Failed to connect to the host via ssh: ssh: connect to host 192.168.111.213 port 22: Connection timed out
+192.168.72.51 vdido Failed to connect to the host via ssh: ssh: connect to host 192.168.72.51 port 22: Connection timed out
+192.168.72.33 kdr Failed to connect to the host via ssh: ssh: connect to host 192.168.72.33 port 22: Connection timed out
+192.168.72.23 boss Failed to connect to the host via ssh: ssh: connect to host 192.168.72.23 port 22: Connection timed out
+192.168.111.153 boss Failed to connect to the host via ssh: ssh: connect to host 192.168.111.153 port 22: Connection timed out
+100.127.8.34 kpis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.34 port 22: No route to host
+100.127.8.12 pis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.12 port 22: No route to host
+100.127.8.18 pis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.18 port 22: No route to host
+100.127.8.19 pis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.19 port 22: No route to host
+100.127.8.21 pis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.21 port 22: No route to host
+100.127.8.14 pis Failed to connect to the host via ssh: ssh: connect to host 100.127.8.14 port 22: No route to host
+100.127.8.69 ogv Failed to connect to the host via ssh: ssh: connect to host 100.127.8.69 port 22: No route to host
+100.127.8.70 ogv Failed to connect to the host via ssh: ssh: connect to host 100.127.8.70 port 22: No route to host
+100.127.9.131 ogv Failed to connect to the host via ssh: ssh: connect to host 100.127.9.131 port 22: No route to host
+100.127.8.112 sos Failed to connect to the host via ssh: ssh: connect to host 100.127.8.112 port 22: No route to host

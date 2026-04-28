@@ -1,0 +1,173 @@
+---
+
+- name: Синхронизация файлов и установка SNS Linux
+
+  hosts: all
+
+  become: yes
+
+  gather_facts: no
+
+
+
+  tasks:
+
+    - name: 1. Получаем текущую версию ядра
+
+      ansible.builtin.shell: uname -a
+
+      register: kernel_version
+
+
+
+    - name: 1.1 Проверяем, установлен ли пакет sns
+
+      ansible.builtin.shell: dpkg -l sns
+
+      register: sns_status
+
+      failed_when: false
+
+      changed_when: false
+
+
+
+    - name: 2. Версия
+
+      ansible.builtin.debug:
+
+        msg: "Пакет sns установлен."
+
+      when: "'sns' in sns_status.stdout"
+
+
+
+    - name: 2.1 Проверка установки пакета sns, если не установлен
+
+      ansible.builtin.debug:
+
+        msg: "Пакет sns не установлен."
+
+      when: "'sns' not in sns_status.stdout"
+
+
+
+    - name: 3. Выводим текущую версию ядра
+
+      ansible.builtin.debug:
+
+        msg: "Текущее ядро: {{ kernel_version.stdout }}"
+
+
+
+    - name: 4. Копируем файлы SNS Linux
+
+      ansible.builtin.copy:
+
+        src: /home/distribution/szi-for-linux/sns-linux/astra_1.7/
+
+        dest: /home/ansible-ib/astra_1.7/
+
+        remote_src: no
+
+      when: "'sns' not in sns_status.stdout"
+
+
+
+    - name: 5. Копируем лицензию sns
+
+      ansible.builtin.copy:
+
+        src: /home/distribution/szi-for-linux/sns-linux/lic124.lic
+
+        dest: /home/ansible-ib/
+
+        remote_src: no
+
+      when: "'sns' not in sns_status.stdout"
+
+
+
+    - name: 6. Устанавливаем зависимости SNS из локальных файлов
+
+      ansible.builtin.command:
+
+        cmd: dpkg -i /home/ansible-ib/astra_1.7/{{ item }}
+
+      loop:
+
+        - libboost-atomic1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-chrono1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-date-time1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-filesystem1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-program-options1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-regex1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-signals1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+        
+        - libsqlite3-0_3.34.1-3+ci202402082153+astra2_amd64.deb
+
+        - python3-lib2to3_3.7.3-1+b1_all.deb
+
+        - libmhash2_0.9.9.9-7+b1_amd64.deb
+
+        - libsasl2-modules_2.1.27+dfsg-1+deb10u2+b3_amd64.deb
+
+        - libccid_1.5.2-1_amd64.deb
+        
+        - libpcsclite1_1.8.24-1+b2_amd64.deb
+
+        - pcscd_1.8.24-1+b2_amd64.deb
+
+        - psmisc_23.2-1+deb10u1_amd64.deb
+
+        - sqlite3_3.34.1-3+ci202402082153+astra2_amd64.deb
+
+        - python3-distutils_3.7.3-1+b1_all.deb
+
+        - binutils-common_2.31.1-16+ci202406211629+astra13_amd64.deb
+
+        - libbinutils_2.31.1-16+ci202406211629+astra13_amd64.deb
+
+        - binutils-x86-64-linux-gnu_2.31.1-16+ci202406211629+astra13_amd64.deb
+
+        - libboost-thread1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-locale1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - libboost-log1.67.0_1.67.0-13+deb10u1+b2_amd64.deb
+
+        - binutils_2.31.1-16+ci202406211629+astra13_amd64.deb
+
+      register: dpkg_install
+
+      failed_when: dpkg_install.rc != 0
+
+      changed_when: false
+
+      when: "'sns' not in sns_status.stdout"
+
+
+
+    - name: 7. Устанавливаем sns-linux, если все пакеты были установлены успешно
+
+      ansible.builtin.command:
+
+        cmd: dpkg -i /home/ansible-ib/astra_1.7/sns_8.2-1425.astra1.7_amd64.deb
+
+      when:
+
+        - "'sns' not in sns_status.stdout"
+
+        - "dpkg_install is success or dpkg_install is not defined"
+
+
+
+
+
+

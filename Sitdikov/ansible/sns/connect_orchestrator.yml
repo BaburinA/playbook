@@ -1,0 +1,28 @@
+- name: Подключение оркестратору
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Убедиться, что Python-библиотека `pexpect` установлена
+      ansible.builtin.yum:
+        name: python3-pexpect
+        state: present
+
+    - name: Выполнение команды подключения
+      expect:
+        command: "sudo /opt/securitycode/sns/bin/snconnctl --registration --ip=192.168.131.8"
+        responses:
+          "логин:": "snsadmin"
+          "пароль:": "12345678"
+      register: registration_result
+      ignore_errors: yes
+
+    - name: Проверка
+      debug:
+        msg: "Хост уже подключен к оркестратору"
+      when: "'Агент уже зарегистрирован' in registration_result.stdout"
+
+    - name: Вывод результата подключения
+      debug:
+        msg: "{{ registration_result.stdout | regex_replace('[\\n\\r]', ' ') | regex_replace('Введите учетные данные администратора безопасности.*?Настройки успешно сохранены', '') | regex_replace('\\+[-\\+]+\\+', '') | regex_replace('\\|', '') | regex_replace('\\s+', ' ') | trim }}"
+      when: "'Агент уже зарегистрирован' not in registration_result.stdout"

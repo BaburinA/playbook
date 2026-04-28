@@ -1,0 +1,72 @@
+- name: install idshs
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    way: /home/distribution/szi-for-linux/idshs/
+    deb_pack: vipnet-ids-hs-agent-1.5.3.124-release-with-astra-sign-x86_64.deb
+    rpm_pack: vipnet-ids-hs-agent-1.5.3.124-release-x86_64.rpm
+    server: "192.168.34.240"
+
+  tasks:
+    - name: Check installed idshs
+      stat:
+        path: '/var/idshs/idshs_agent.conf'
+      register: check
+
+    - name: Собираю дополнительный факт
+      setup:
+        filter: ansible_os_family
+      become: no
+
+    - name: debag
+      debug:
+        var: check.stat.exists
+
+    - block:
+        - name: copy installer idshs
+          copy:
+            src: '{{way}}{{deb_pack}}'
+            dest: '/home/{{ansible_user}}/'
+          become: no
+
+        - name: install idshs 1.5.3
+          shell: 'dpkg -i /home/{{ansible_user}}/{{deb_pack}}'
+
+        - name: daemon-reload
+          shell: 'systemctl daemon-reload'
+
+        - name: ln /dev/null
+          shell: 'ln -s /dev/null /var/log/idshs/snort_out.log'
+
+        - name: connect to server idshs 1.5.3
+          shell: 'idshs-agent {{server}}'
+
+        - name: restart service watcher
+          shell: 'systemctl restart vipnet-ids-hs-watcher'
+
+      when: ansible_os_family == "Astra Linux" and check.stat.exists == false
+
+    - block:
+        - name: copy installer idshs
+          copy:
+            src: '{{way}}{{rpm_pack}}'
+            dest: '/home/{{ansible_user}}/'
+          become: no
+
+        - name: install idshs 1.5.3
+          shell: 'rpm -i /home/{{ansible_user}}/{{rpm_pack}}'
+
+        - name: daemon-relaod
+          shell: 'systemctl daemon-reload'
+
+        - name: ln /dev/null
+          shell: 'ln -s /dev/null /var/log/idshs/snort_out.log'
+
+        - name: connect to server idshs 1.5.3
+          shell: 'idshs-agent {{server}}'
+
+        - name: restart service watcher
+          shell: 'systemctl restart vipnet-ids-hs-watcher'
+
+      when: ansible_os_family == "REDOS" and check.stat.exists == false

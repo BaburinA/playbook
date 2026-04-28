@@ -1,0 +1,22 @@
+---
+- name: Настройка Dr.Web на удаленном хосте
+  hosts: all
+  become: true  # Выполнение команд с использованием sudo
+  tasks:
+    - name: Установить исключение для пути в Dr.Web
+      command: drweb-ctl cfset -a LinuxSpider.ExcludedPath /data/database
+
+    - name: Перезапустить службу drweb-configd
+      command: systemctl restart drweb-configd
+
+    - name: Пауза на 5 секунд
+      pause:
+        seconds: 5
+
+    - name: Проверить установленные исключения в Dr.Web
+      command: drweb-ctl cfsh LinuxSpider.ExcludedPath
+      register: result  # Сохраняем результат выполнения команды
+
+    - name: Вывести результат проверки исключений
+      debug:
+        msg: "{{ result.stdout }}"  # Выводим результат команды

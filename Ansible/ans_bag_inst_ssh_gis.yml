@@ -1,0 +1,61 @@
+# Установка ключей на ГИСы и прав на sudoers
+---
+- hosts: TestHS
+  become: true
+  user: baburin_ag
+  tasks:
+
+  - name: Populate service facts
+    ansible.builtin.service_facts:
+
+  - name: Set variables agent
+    set_fact:
+      agent_echo: baburin_ag ALL=(ALL) NOPASSWD:ALL
+      ok_not_agent: false
+
+  - name: Create a directory if it does not exist
+    ansible.builtin.file:
+      path: /home/baburin_ag/.ssh
+      state: directory
+      mode: '0755'
+      owner: baburin_ag
+      group: baburin_ag
+
+  - name: Copy certificate
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/authorized_keys
+      dest: ./.ssh/authorized_keys
+      mode: '0644'
+      owner: baburin_ag
+      group: baburin_ag
+
+
+  - name: Copy config
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/config
+      dest: ./.ssh/config
+      mode: '0644'
+      owner: baburin_ag
+      group: baburin_ag
+
+
+  - name: Read in file Sudoers
+    ansible.builtin.shell: cat /etc/sudoers
+    register: user_accts
+
+  - name: a task that only happens if the user exists
+    set_fact:
+      ok_not_agent: true
+    when: user_accts.stdout.find(agent_echo) != -1
+
+#  - debug: var=ok_not_agent
+
+  - name: Change Sudoer
+    ansible.builtin.shell: echo '{{ agent_echo }}' >>/etc/sudoers
+    when: ok_not_agent == false
+
+# End playbook
+
+
+
+

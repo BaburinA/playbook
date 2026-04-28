@@ -1,0 +1,25 @@
+---
+- name: Устанока rsa ключей для пользователей c python
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    user: "ansible-ib"
+  tasks:
+    - name: Копирование rsa ключа в authorized_keys
+      authorized_key:
+        state: present
+        user: "{{user}}"
+        key: "{{ lookup('file', '/home/distribution/pub/id_rsa_'+item+'.pub') }}"
+      become: no
+      loop:
+        - baburin_ag
+        - ekimov_vi
+        - kutergin_ds
+        - orekhov_anv
+        - perminov_na
+        - sitdikov_tr
+        - trofimov_va
+        - pestrikova_ula
+
+

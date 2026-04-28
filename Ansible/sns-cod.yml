@@ -1,0 +1,13 @@
+#Перезапуск службы sn и подключение к серверу sns-cod
+---
+- hosts: sns-cod
+  become: true
+  tasks:
+
+  - name: Restarting SN LSP
+    ansible.builtin.shell: systemctl restart sn
+
+  - name: Connect to server
+    ansible.builtin.shell: /opt/secretnet/bin/snnetctl -e
+    
+

@@ -1,0 +1,21 @@
+---
+- name: Настройка Dr.Web на удаленном хосте
+  hosts: all
+  become: true  # Выполнение команд с использованием sudo
+  tasks:
+    - name: Установка адреса meshD в Dr.Web
+      command: drweb-ctl cfset MeshD.EngineUplink ""
+
+    - name: перезагрузить конфиг
+      command: drweb-ctl reload
+
+    - name: Перезапустить службу drweb-configd
+      command: systemctl restart drweb-configd
+
+
+
+
+
+
+
+

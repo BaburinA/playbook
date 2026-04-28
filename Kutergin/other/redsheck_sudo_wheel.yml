@@ -1,0 +1,41 @@
+---
+- name: Настройка sudoers и группы wheel для ansible-ib
+  hosts: all
+  become: yes
+  tasks:
+    - name: Добавить строку в /etc/sudoers если она отсутствует
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'ansible-ib ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'  # Проверка синтаксиса перед записью
+        state: present
+
+    - name: Проверить, находится ли ansible-ib в группе wheel
+      shell: |
+        # Получаем список всех групп пользователя
+        user_groups=$(getent group | awk -F: -v user="ansible-ib" '$4 ~ user { print $1 }')
+        echo "$user_groups" | grep -qw 'wheel' && echo "yes" || echo "no"
+      args:
+        executable: /bin/bash
+      register: user_in_wheel
+      changed_when: false
+
+    - name: Удалить ansible-ib из группы wheel (если состоит)
+      shell: |
+        USER="ansible-ib"
+        GROUP="wheel"
+
+        # Получаем список всех групп пользователя, кроме 'wheel'
+        user_groups=$(getent group | awk -F: -v user="$USER" '$4 ~ user { print $1 }')
+        filtered_groups=$(echo "$user_groups" | grep -v '^$' | grep -vxF "$GROUP")
+
+        # Формируем новый список групп
+        new_groups=$(echo "$filtered_groups" | tr '\n' ',' | sed 's/,$//')
+
+        # Обновляем группы пользователя
+        usermod -G "$new_groups" "$USER"
+      when: user_in_wheel.stdout == "yes"
+      args:
+        executable: /bin/bash
+      register: remove_from_wheel
+      changed_when: "'groups' in remove_from_wheel.stdout or remove_from_wheel.stdout != ''"

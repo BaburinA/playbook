@@ -1,0 +1,69 @@
+- name: Установка idshs
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    way: '/home/distribution/szi-for-linux/idshs/'
+    way2: '/home/{{ansible_user}}/'
+    server: "192.168.34.240"
+    mass:
+      - pack: vipnet-ids-hs-agent-1.5.3.124-release-with-astra-sign-x86_64.deb
+        manager: 'dpkg -i '
+        family:
+          - 'Astra Linux'
+          - 'Debian'
+      - pack: vipnet-ids-hs-agent-1.5.3.124-release-x86_64.rpm
+        manager: 'rpm -i '
+        family:
+          - 'REDOS'
+          - 'RedHat'
+
+  tasks:
+    - name: Проверка существует ли файл конфигурации
+      stat:
+        path: '/var/idshs/idshs_agent.conf'
+      register: check
+
+    - name: Собираю дополнительный факт
+      setup:
+        filter: ansible_os_family
+      become: no
+
+    - name: Копирование установочника
+      copy:
+        src: '{{way}}{{item.pack}}'
+        dest: '{{way2}}'
+      become: no
+      loop: '{{mass}}'
+      when: ansible_os_family in item.family and check.stat.exists == false
+
+    - name: Установка idshs 1.5.3
+      shell: '{{item.manager}}{{way2}}{{item.pack}}'
+      loop: '{{mass}}'
+      when: ansible_os_family in item.family and check.stat.exists == false
+
+    - name: Проверка подключения
+      shell: 'cat /var/idshs/idshs_agent.conf'
+      register: agent
+
+    - name: Подключение к серверу {{server}}
+      shell: 'idshs-agent {{server}}'
+      when: server not in agent.stdout
+
+    - name: Создание симолической ссылки snort_out.log
+      file:
+        state: link
+        dest: '/var/log/idshs/snort_out.log'
+        src: '/dev/null'
+        force: yes
+      ignore_errors: yes
+
+    - name: Перезагрузка службы watcher и daemon-reload
+      shell: |
+        systemctl daemon-reload
+        systemctl restart vipnet-ids-hs-watcher
+      when: check.stat.exists == false
+
+
+
+

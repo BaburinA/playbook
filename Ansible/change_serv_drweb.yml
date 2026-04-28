@@ -1,0 +1,30 @@
+# Перенос на новый сервер Drweb
+---
+- hosts: MinFinPU
+  become: true
+  tasks:
+
+  - name: Copy certificate
+    ansible.builtin.copy:
+      src: /home/admin1/cer.pem
+      dest: ./cer.pem
+      mode: '0644'
+
+  - name: Restart WS Drweb
+    ansible.builtin.shell: systemctl restart drweb-configd
+
+  - name: Disconnect old  server Drweb
+    ansible.builtin.shell: drweb-ctl esd -d
+
+  - name: Connect new  server Drweb
+    ansible.builtin.shell: drweb-ctl esc 91.230.91.5:2193 --Certificate ./cer.pem
+#    ansible.builtin.shell: drweb-ctl esconnect 192.168.32.202 --Certificate ./cer.pem
+
+#  - name: Result connect server
+#    ansible.builtin.shell: drweb-ctl app
+
+#      state: restarted
+
+
+
+

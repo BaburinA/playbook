@@ -1,0 +1,29 @@
+---
+- name: Обновление политики паролей в /etc/pam.d/common-password
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Cодержимого файла до изменений
+      command: cat /etc/pam.d/common-password
+      register: original_content
+
+    - name: Показать содержимое файла до изменений (вся строка с pam_cracklib)
+      debug:
+        msg: "Содержимое файла до изменений: {{ original_content.stdout | regex_findall('password\\s+requisite\\s+pam_cracklib.so.*') }}"
+
+    - name: Убедиться, что строка с pam_cracklib.so настроена правильно
+      lineinfile:
+        path: /etc/pam.d/common-password
+        regexp: '^password\s+requisite\s+pam_cracklib.so'
+        line: 'password requisite pam_cracklib.so retry=3 minlen=12 difok=3 dcredit=-2 ucredit=-2 lcredit=-2'
+        state: present
+        backup: yes
+
+    - name: Cодержимое файла после изменений
+      command: cat /etc/pam.d/common-password
+      register: modified_content
+
+    - name: Показать содержимое файла после изменений (вся строка с pam_cracklib)
+      debug:
+        msg: "Содержимое файла после изменений: {{ modified_content.stdout | regex_findall('password\\s+requisite\\s+pam_cracklib.so.*') }}"

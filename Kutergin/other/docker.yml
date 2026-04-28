@@ -1,0 +1,36 @@
+---
+- name: Проверка версии Docker
+  hosts: all
+  become: no
+  gather_facts: no
+  vars:
+    path: /home/sitdikov_tr/ansible/docker_info.txt #Путь до файла (куда хочешь сохранить)
+
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+
+    - name: Проверка версии докера
+      command: docker --version
+      register: ver_docker
+      ignore_errors: yes
+
+    - name: Сохранение результат в переменную
+      set_fact:
+        output_massage: "{{ansible_host}} {{ver_docker.stdout if ver_docker.changed}}"
+
+    - name: Сохранение в {{path}}
+      local_action:
+        module: lineinfile
+        line: "{{output_massage}}"
+        dest: "{{path}}"
+        mode: "0755"
+        create: true
+      when: input | default('n') == 'y'
+
+    - name: Вывод информации
+      debug:
+        msg: "{{output_massage}}"

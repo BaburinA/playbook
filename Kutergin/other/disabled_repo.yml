@@ -1,0 +1,139 @@
+# ---
+# - name: Отключение репозитория RedOS 
+#   hosts: all
+#   become: yes
+#   gather_facts: no
+
+#   tasks:
+    # - name: Изменить enabled=1 на enabled=0 для репозитория [updates]
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum.repos.d/redos.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+    #     #backup: yes
+    #   #notify: Перезагрузка yum cache
+
+    # - name: Найти и изменить enabled=1 на enabled=0 для [basec]
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum.repos.d/redos.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+    #     after: '^\$$basec\$$'
+    #     #backup: yes
+    #   #notify: Перезагрузка yum cache
+
+    # - name: репозиторий RedOS-Basec.repo
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum.repos.d/RedOS-Base.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+
+    # - name: репозиторий RedOS-Basec.repos
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum.repos.d/RedOS-Basec.repo
+    #     regexp: '^\$$basec\$$.*?^enabled=([0-9]+)'
+    #     line: 'enabled=0'
+      
+
+    # - name: репозиторий RedOS-kernels6c.repo 
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum.repos.d/RedOS-kernels6c.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+    #     after: '^\$$kernels6c\$$'
+
+    # - name: репозиторий RedOS-kernelsc.repo 
+    #   ansible.builtin.lineinfile:
+    #     path: /etc /yum.repos.d/RedOS-kernelsc.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+    #     after: '^\$$kernelsc\$$'
+
+    # - name: репозиторий RedOS-Updatesc.repo
+    #   ansible.builtin.lineinfile:
+    #     path: /etc /yum.repos.d/RedOS-Updatesc.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+    #     after: '^\$$updatesc\$$'
+
+    # - name: репозиторий RedOS-Updates.repo
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/yum/.repos.d/RedOS-Updates.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+
+    # - name: репозиторий Yandex
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/disro.repos.d/yandex-browser-release.repo
+    #     regexp: '^enabled=1'
+    #     line: 'enabled=0'
+
+    # - name: dnf makecahe
+    #   command: dnf makecahe
+
+---
+- name: Отключение репозиториев RedOS
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Отключить [base] в RedOS-Base.repo
+      ansible.builtin.lineinfile:
+        path: /etc/yum.repos.d/RedOS-Base.repo
+        regexp: '^enabled=1'
+        line: 'enabled=0'
+        #backup: yes
+
+    - name: Отключить [basec] в RedOS-Basec.repo
+      ansible.builtin.lineinfile:
+        path: /etc/yum.repos.d/RedOS-Basec.repo
+        regexp: '^\$$basec\$$[\s\S]*?^enabled\s*=\s*\d+'
+        line: 'enabled=0'
+        backrefs: yes
+    
+
+    - name: Отключить [kernels6c] в RedOS-kernels6c.repo
+      ansible.builtin.lineinfile:
+        regexp: '^\$$kernels6c\$$.*?^enabled=([0-9]+)'
+        line: 'enabled=0'
+        backrefs: yes
+        #backup: yes
+        path: /etc/yum.repos.d/RedOS-kernels6c.repo
+
+    - name: Отключить [kernelsc] в RedOS-kernelsc.repo
+      ansible.builtin.lineinfile:
+        regexp: '^\$$kernelsc\$$.*?^enabled=([0-9]+)'
+        line: 'enabled=0'
+        backrefs: yes
+        #backup: yes
+        path: /etc/yum.repos.d/RedOS-kernelsc.repo
+
+    - name: Отключить [updatesc] в RedOS-Updatesc.repo
+      ansible.builtin.lineinfile:
+        regexp: '^\$$updatesc\$$.*?^enabled=([0-9]+)'
+        line: 'enabled=0'
+        backrefs: yes
+        #backup: yes
+        path: /etc/yum.repos.d/RedOS-Updatesc.repo
+
+    - name: Отключить [updates] в RedOS-Updates.repo
+      ansible.builtin.lineinfile:
+        path: /etc/yum.repos.d/RedOS-Updates.repo
+        regexp: '^enabled=1'
+        line: 'enabled=0'
+        #backup: yes
+
+    - name: Отключить Yandex Browser repo
+      ansible.builtin.lineinfile:
+        path: /etc/distro.repos.d/yandex-browser-release.repo
+        regexp: '^enabled=1'
+        line: 'enabled=0'
+        #backup: yes
+
+    - name: Обновить кэш пакетов
+      ansible.builtin.command: dnf makecache
+      #args:
+        #chdir: /tmp
+  
+

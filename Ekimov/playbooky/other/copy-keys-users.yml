@@ -1,0 +1,44 @@
+---
+- name: Установка ssh ключей для пользователей
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    path_to_files: /home/distribution/pub/
+  vars_files:
+    - users.yml
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+
+    - name: Установка ключей в authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{item}}"
+        state: present
+        key: "{{ lookup('file','{{path_to_files}}id_rsa_{{item}}.pub')}}"
+      register: res
+      ignore_errors: yes
+      loop: "{{users.sa}}"
+
+    - name: Сохранение ненайденных пользователей
+      set_fact:
+        miss_users: |-
+          {% set ns=namespace(var = []) %}
+          {% for i in res.results %}
+          {% if i.failed%}
+          {% set ns.var=ns.var+[i.item] %}
+          {% endif %}
+          {% endfor %}
+          {{ansible_host}} {{ ns.var }}
+
+    - name: Сохранение ненайденных пользователей
+      local_action:
+        module: lineinfile
+        mode: '0755'
+        path: /home/sitdikov_tr/ansible/notfound_users.txt
+        create: true
+        line: "{{miss_users}}"
+      when: input | default('n') == 'y'

@@ -1,0 +1,189 @@
+[LocalHost]
+Localhost	ansible_ssh_host=localhost ansible_ssh_user=admin1
+
+[StroyNadzor]
+ASN-P24-WEB-29-18	ansible_ssh_host=192.168.29.18 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-APP-29-19 	ansible_ssh_host=192.168.29.19 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-DBM1-29-20 	ansible_ssh_host=192.168.29.20 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-DBM2-29-21 	ansible_ssh_host=192.168.29.21 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-DBM3-29-22 	ansible_ssh_host=192.168.29.22 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-MB-29-23 	ansible_ssh_host=192.168.29.23 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+ASN-P24-MNTR-29-24 	ansible_ssh_host=192.168.29.24 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[Kadry]
+KDR-P24-CSP-28-66	ansible_ssh_host=192.168.28.66 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+KDR-P24-DBM-28-67	ansible_ssh_host=192.168.28.67 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passr=ooM2ufuo02
+KDR-P24-WEB-28-68	ansible_ssh_host=192.168.28.68 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+KDR-P24-CSP-0-104	ansible_ssh_host=10.0.0.104 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+KDR-P24-DBM-21-143	ansible_ssh_host=192.168.21.143 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passr=ooM2ufuo02
+KDR-P24-WEB-21-142	ansible_ssh_host=192.168.21.142 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[Drweb-WS:children]
+GJU
+Kadry
+StroyNadzor
+VidAnal
+
+[TestHosts]
+#TestHost0	ansible_ssh_host=192.168.32.249 ansible_ssh_user=admin1 ansible_ssh_password=ObnUfhl18 ansible_sudo_passwor=ObnUfhl18
+#TestHost1	ansible_ssh_host=192.168.32.248 ansible_ssh_user=admin1 ansible_ssh_password=ObnUfhl18 ansible_sudo_passwor=ObnUfhl18
+TestHost4	ansible_ssh_host=10.0.12.21     ansible_ssh_user=root ansible_ssh_password=ObnUfhl18 ansible_sudo_pass=ObnUfhl18
+#TestHost5	ansible_ssh_host=10.0.12.24     ansible_ssh_user=root ansible_ssh_password=ObnUfhl18 ansible_sudo_pass=ObnUfhl18
+TestHost3	ansible_ssh_host=192.168.34.101 ansible_ssh_user=admin1 ansible_ssh_password=121JhuCjpGfg ansible_sudo_pass=121JhuCjpGfg
+
+[GJU]
+MKD-P24-DBM1-P-33-226	ansible_ssh_host=192.168.33.226 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-ECP-P-33-229	ansible_ssh_host=192.168.33.229 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-FS-P-33-228	ansible_ssh_host=192.168.33.228 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-INTG-P-33-230	ansible_ssh_host=192.168.33.230 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-MNTR-P-33-231	ansible_ssh_host=192.168.33.231 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-WEB1-P-33-227	ansible_ssh_host=192.168.33.227 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+
+[GJU_KapRem]
+MKD-P24-WEB1-P-28-42	ansible_ssh_host=192.168.28.42 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-WEB1-P-28-43	ansible_ssh_host=192.168.28.43 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-WEB1-P-28-45	ansible_ssh_host=192.168.28.45 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+
+[MKD]
+MKD-P24-FS-P-33-228	ansible_ssh_host=192.168.33.228 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+MKD-P24-WEB1-P-33-227	ansible_ssh_host=192.168.33.227 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+
+[ServDesc]
+SDBDUPDATE		ansible_ssh_host=10.0.0.58	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+test.sd.udmr.ru		ansible_ssh_host=10.0.0.47	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+update.sd.udmr.ru	ansible_ssh_host=10.0.0.56	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+proxy.naumen.udmr	ansible_ssh_host=192.168.220.5	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[EdPoUGV]
+192.168.80.2	ansible_ssh_host=192.168.80.2 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+192.168.80.3	ansible_ssh_host=192.168.80.3 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+
+[VidAnal]
+192.168.28.143	ansible_ssh_host=192.168.28.143	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.135	ansible_ssh_host=192.168.28.135	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.136	ansible_ssh_host=192.168.28.136	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.152	ansible_ssh_host=192.168.28.152	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.153	ansible_ssh_host=192.168.28.153	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.148	ansible_ssh_host=192.168.28.148	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.154	ansible_ssh_host=192.168.28.154	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.147	ansible_ssh_host=192.168.28.147	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.142	ansible_ssh_host=192.168.28.142	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.131	ansible_ssh_host=192.168.28.131	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.28.144	ansible_ssh_host=192.168.28.144	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MinObr]
+192.168.100.100 ansible_ssh_host=192.168.100.100	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.124 ansible_ssh_host=192.168.100.124	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.123 ansible_ssh_host=192.168.100.123	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.125 ansible_ssh_host=192.168.100.125	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.142 ansible_ssh_host=192.168.100.142	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.143 ansible_ssh_host=192.168.100.143	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.146 ansible_ssh_host=192.168.100.146	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.147 ansible_ssh_host=192.168.100.147	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.148 ansible_ssh_host=192.168.100.148	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.154 ansible_ssh_host=192.168.100.154	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.158 ansible_ssh_host=192.168.100.158	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.191 ansible_ssh_host=192.168.100.191	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.199 ansible_ssh_host=192.168.100.199	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[Mobr]
+192.168.100.144 ansible_ssh_host=192.168.100.144	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.145 ansible_ssh_host=192.168.100.145	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MinFinPU]
+192.168.99.4 ansible_ssh_host=192.168.99.4	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.150 ansible_ssh_host=192.168.100.150	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.100.151 ansible_ssh_host=192.168.100.151	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MFC]
+91.230.91.44 ansible_ssh_host=91.230.91.44	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.9 ansible_ssh_host=192.168.101.9	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.11 ansible_ssh_host=192.168.101.11	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.12 ansible_ssh_host=192.168.101.12	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.13 ansible_ssh_host=192.168.101.13	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.14 ansible_ssh_host=192.168.101.14	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.15 ansible_ssh_host=192.168.101.15	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.16 ansible_ssh_host=192.168.101.16	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.17 ansible_ssh_host=192.168.101.17	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.18 ansible_ssh_host=192.168.101.18	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.19 ansible_ssh_host=192.168.101.19	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.23 ansible_ssh_host=192.168.101.23	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.24 ansible_ssh_host=192.168.101.24	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.101.30 ansible_ssh_host=192.168.101.30	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[RNIS]
+#192.168.31.34 ansible_ssh_host=192.168.31.34	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.35 ansible_ssh_host=192.168.31.35	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.36 ansible_ssh_host=192.168.31.36	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.43 ansible_ssh_host=192.168.31.43	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.44 ansible_ssh_host=192.168.31.44	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.46 ansible_ssh_host=192.168.31.46	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.50 ansible_ssh_host=192.168.31.50	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.51 ansible_ssh_host=192.168.31.51	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.52 ansible_ssh_host=192.168.31.52	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.53 ansible_ssh_host=192.168.31.53	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.60 ansible_ssh_host=192.168.31.60	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.62 ansible_ssh_host=192.168.31.62	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.31.39 ansible_ssh_host=192.168.31.39	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.31.40 ansible_ssh_host=192.168.31.40	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.31.41 ansible_ssh_host=192.168.31.41	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.31.55 ansible_ssh_host=192.168.31.55	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+
+[RPGU]
+#192.168.223.2 ansible_ssh_host=192.168.223.2	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.223.3 ansible_ssh_host=192.168.223.3	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+BI-P24-APP1-T-74-3	ansible_ssh_host=192.168.74.10 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+#rpgu-astra-nginx	ansible_ssh_host=192.168.28.30 ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_passwor=ooM2ufuo02
+
+[H9000-1]
+#192.168.31.20 ansible_ssh_host=192.168.31.20	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.31.21 ansible_ssh_host=192.168.31.21	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.87 ansible_ssh_host=10.0.1.87	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.175 ansible_ssh_host=10.0.1.175	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.231 ansible_ssh_host=10.0.1.231	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.232 ansible_ssh_host=10.0.1.232	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.233 ansible_ssh_host=10.0.1.233	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.235 ansible_ssh_host=10.0.1.235	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.236 ansible_ssh_host=10.0.1.236	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.1.238 ansible_ssh_host=10.0.1.238	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+10.0.224.6 ansible_ssh_host=10.0.224.6	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+91.230.91.22 ansible_ssh_host=91.230.91.22	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+91.230.91.21 ansible_ssh_host=91.230.91.21	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+
+[BI-P]
+192.168.74.10 ansible_ssh_host=192.168.74.10	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[Dir_Ario]
+10.0.224.16 ansible_ssh_host=10.0.224.16	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.21.86 ansible_ssh_host=192.168.21.86	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.123.15 ansible_ssh_host=192.168.123.15	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.223.11 ansible_ssh_host=192.168.223.11	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[GP]
+#192.168.50.5 ansible_ssh_host=192.168.50.5	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.50.84 ansible_ssh_host=192.168.50.84	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+#192.168.50.85 ansible_ssh_host=192.168.50.85	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.50.86 ansible_ssh_host=192.168.50.86	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MinPRD]
+192.168.31.4 ansible_ssh_host=192.168.31.4	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.31.5 ansible_ssh_host=192.168.31.5	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[Cloud]
+10.0.1.173 ansible_ssh_host=10.0.1.173	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+91.230.91.36 ansible_ssh_host=91.230.91.36	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.34.130 ansible_ssh_host=192.168.34.130	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[H900]
+192.168.31.20 ansible_ssh_host=192.168.31.20	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[OGD]
+192.168.28.99 ansible_ssh_host=192.168.28.99	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MFPU]
+192.168.99.4 ansible_ssh_host=192.168.99.4	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+
+[MFP]
+192.168.28.155 ansible_ssh_host=192.168.28.155	ansible_ssh_user=baburin_ag ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02

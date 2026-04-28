@@ -1,0 +1,26 @@
+# Меняем hosts и user
+---
+- hosts: DrwebNTP
+  become: true
+  tasks:
+
+    - name: Install NTP Chrony
+      ansible.builtin.apt:
+        name: chrony
+        state: present
+
+    - name: deploy chrony.conf template
+      template:
+        src: ./chrony/chrony.conf.j2
+        dest: /etc/chrony/chrony.conf
+        owner: root
+        group: root
+        mode: 0644
+        backup: yes
+
+    - name: Restart chronyd
+      service:
+        name: chronyd
+        state: restarted
+
+# pkg_mgr

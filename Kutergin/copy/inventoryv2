@@ -1,0 +1,477 @@
+[all:vars]
+ansible_user=ansible-ib
+ansible_ssh_private_key_file=/home/sitdikov_tr/.ssh/id_rsa
+ansible_python_interpreter=/usr/bin/python
+
+[own_vm]
+ATC-MFC                               ansible_host=10.0.1.83
+#zabbix-proxy-minobrric                ansible_host=192.168.100.161 #выключена
+zproxy-minobr                         ansible_host=192.168.100.160
+ELK-p24-dn01                          ansible_host=10.0.1.232
+ELK-p24-dn02                          ansible_host=10.0.1.233
+ELK-p24-dn03                          ansible_host=10.0.1.234
+ELK-p24-dn04                          ansible_host=10.0.1.235
+ELK-p24-dn05                          ansible_host=10.0.1.237
+ELK-p24-dn06                          ansible_host=10.0.1.238
+ELK-p24-kbn01                         ansible_host=10.0.1.236
+ELK-p24-mn01                          ansible_host=10.0.1.231
+DTC-P24-ZBP-32-104                    ansible_host=192.168.32.104
+DTC-P24-ZBS-32-100                    ansible_host=192.168.32.100
+WikiDTC                               ansible_host=192.168.33.103
+https_grafana_ric                     ansible_host=192.168.33.102
+OSS-P24-BKP1                          ansible_host=192.168.33.98
+DTCS-P24-RCKTBL1-33-100               ansible_host=192.168.33.100
+DTCS-P24-NGNX-32-58                   ansible_host=192.168.32.58
+NGNX-P24-WEB-32-51                    ansible_host=192.168.32.51
+NGNX-P24-WEB-32-52                    ansible_host=192.168.32.52
+NGNX-P24-WEB-80-17                    ansible_host=192.168.80.17
+NGNX-P24-WEB-80-18                    ansible_host=192.168.80.18
+NGNX-P24-WEB-99-21                    ansible_host=192.168.99.21
+CACT-P24-MNTR1-33-99                  ansible_host=192.168.33.99
+NGNX-P24-WEB-32-66                    ansible_host=192.168.32.66
+R7O-P24-T-0-205                       ansible_host=10.0.0.205
+PWD-P24-P-32-36                       ansible_host=192.168.32.36
+jitsi                                 ansible_host=91.230.91.16
+CDFA-P24-DNS1-32-74                   ansible_host=192.168.32.74
+CDFA-P24-DNS2-32-75                   ansible_host=192.168.32.75
+
+[mfc]
+mfc_sgs_primary_uc                    ansible_host=192.168.78.8
+MFC-P24-PRX1-91-44                    ansible_host=91.230.91.44
+mfc-sgs-asr-node1                     ansible_host=192.168.78.16
+mfc-sgs-asr-node2                     ansible_host=192.168.78.17
+mfc-sgs-asr-node3                     ansible_host=192.168.78.18
+mfc-sgs-datastor                      ansible_host=192.168.78.20
+mfc-sgs-db-node1                      ansible_host=192.168.78.12
+mfc-sgs-db-node2                      ansible_host=192.168.78.13
+mfc-sgs-lingware-srv                  ansible_host=192.168.78.19
+mfc-sgs-mrcp-srv-1                    ansible_host=192.168.78.14
+mfc-sgs-mrcp-srv-2                    ansible_host=192.168.78.15
+mfc-sgs-secondary-uc                  ansible_host=192.168.78.9
+mfs-sgs-websrv-node1                  ansible_host=192.168.78.10
+mfs-sgs-websrv-node2                  ansible_host=192.168.78.11
+MFC-P24-APP1-78-23                    ansible_host=192.168.78.23
+BUD-P24-SQL-P-99-35                   ansible_host=192.168.99.35
+BUD-P24-WEB-P-99-36                   ansible_host=192.168.99.36
+
+[own_vm]
+Pilot                                 ansible_host=192.168.28.156
+DTCS-P24-ST-T-1-4                     ansible_host=10.0.1.4
+DMAP-P24-APP1-P-29-91                 ansible_host=192.168.29.91
+DMAP-P24-APP2-P-29-92                 ansible_host=192.168.29.92
+DMAP-P24-DBM1-P-29-93                 ansible_host=192.168.29.93
+DMAP-P24-DBM2-P-29-90                 ansible_host=192.168.29.93
+PWD-P24-P-32-36                       ansible_host=192.168.32.36
+
+[anti_ib]
+# ATS-P24-FS1-2-2                       ansible_host=192.168.2.2
+#CDFA-P24-DNS1-32-74                   ansible_host=192.168.32.74 Дал доступ СоловьевРВ
+DNS-P24-NS1-32-10                     ansible_host=192.168.32.10
+# ATC                                   ansible_host=192.168.2.254
+#CDFA-P24-DNS2-32-75                   ansible_host=192.168.32.75 Дал доступ СоловьевРВ
+DNS-P24-NS2-32-11                     ansible_host=192.168.32.11
+DTCS-P24-CONB-33-106                  ansible_host=192.168.33.106
+DTCS-P24-MNTR-33-101                  ansible_host=192.168.33.101
+DTCS-P24-RCKTBL1-T-0-8                ansible_host=10.0.0.8
+DTCS-P24-WIK2-33-124                  ansible_host=192.168.33.124
+grafana_OGV                           ansible_host=192.168.32.69
+Graylog                               ansible_host=10.0.0.222
+#HaProxy-P24-Web1-32-54                ansible_host=192.168.32.54 # нет учётки
+#jitsi                                 ansible_host=91.230.91.16
+OnlineTest                            ansible_host=192.168.33.105
+#nginxCryptoPro                        ansible_host=192.168.32.50 #выключена
+Nginx-ssl-blacklist                   ansible_host=10.0.0.172
+Stor2RRD                              ansible_host=192.168.20.66
+WikiDTC-Test                          ansible_host=192.168.33.126
+zabbix_server_OGV                     ansible_host=192.168.32.70
+ZP-102-network                        ansible_host=192.168.32.102
+zp-103-vmware                         ansible_host=192.168.32.103
+zp-105-security                       ansible_host=192.168.32.105
+zp-106-directum                       ansible_host=192.168.32.106
+zp-108-netOGV                         ansible_host=192.168.32.108
+zp-109-komers                         ansible_host=192.168.32.109
+zp-110-vipnet                         ansible_host=192.168.32.110
+DTCS-P24-ZBP-12-2                     ansible_host=10.10.12.2
+speedtest-ogv.udm                     ansible_host=10.10.12.3
+LOR-P24-T-32-26                       ansible_host=192.168.32.26
+
+
+[pis_dev]
+SD-P24-APP1-P-79-10                   ansible_host=192.168.79.10
+SD-P24-BL1-P-220-5                    ansible_host=192.168.220.5
+SD-P24-DBM1-P-79-11                   ansible_host=192.168.79.11
+SD-P24-APP-T-0-47                     ansible_host=10.0.0.47
+SD-P24-BD-T-0-43                      ansible_host=10.0.0.43
+SD-P24-APP-D-0-56                     ansible_host=10.0.0.56
+SD-P24-BD-D-0-58                      ansible_host=10.0.0.58
+SD-P24-APP-E-0-60                     ansible_host=10.0.0.60
+SD-P24-BD-E-0-61                      ansible_host=10.0.0.61
+
+[pis_admin]
+BI-P24-APP1-P-74-2                    ansible_host=192.168.74.2 ansible_python_interpreter=/usr/bin/python3
+IPRA-P24-DBM-21-127                   ansible_host=192.168.21.127
+EBZ-P24-BL1-P-223-13                  ansible_host=192.168.223.13
+DIR-P24-BL2-P-21-110                  ansible_host=192.168.21.110
+VID-P24-T-30-2                        ansible_host=192.168.30.2
+APO-P24-APP-30-3                      ansible_host=192.168.30.3
+RPGU_redirect_prod_astra              ansible_host=192.168.28.30
+RPGU_redirect_test_nginx              ansible_host=10.0.0.117
+CLD-P24-BL-P-34-130                   ansible_host=192.168.34.130 ansible_python_interpreter=/usr/bin/python3
+CLD_ANO-P24-APP-34-135                ansible_host=192.168.34.135
+CentOSCloudTest                       ansible_host=10.0.1.183 
+CLD-P24-APP-T-0-158                   ansible_host=10.0.0.158 ansible_python_interpreter=/usr/bin/python3
+CLD-P24-DBM1-T-1-182                  ansible_host=10.0.1.182
+Cloud_doc4_clone                      ansible_host=10.0.1.179
+CLD_SCHL-P24-APP-34-155               ansible_host=192.168.34.155
+ArioHaproxy                           ansible_host=192.168.38.30
+AstraNodeBD                           ansible_host=192.168.38.40
+AstraNodeRB                           ansible_host=192.168.38.34
+AstraNodeBD-Test                      ansible_host=192.168.38.8
+Rx_Arch_HaProxy01                     ansible_host=192.168.122.2
+Rx_Arch_PostgreSQL01                  ansible_host=192.168.122.3
+Rx_Arch_Rabbit01                      ansible_host=192.168.122.4
+VirtualBD                             ansible_host=10.0.122.154
+Adapter-P24-BDM-0-86                  ansible_host=192.168.29.3
+Astra-PostgreSQL                      ansible_host=192.168.123.5
+CentOS7_ElasticSearch_RXProd          ansible_host=192.168.123.14
+#CentOS7_ETCD                          ansible_host=192.168.123.7 #выключена
+CentOS7_HAproxy                       ansible_host=192.168.123.2
+#CentOS7_HAproxy2                      ansible_host=192.168.123.3 #выключена
+CentOS7_MongoDB_RX                    ansible_host=192.168.123.15
+CentOS7_Rabbit                        ansible_host=192.168.123.8
+CentOS7_Redis                         ansible_host=192.168.123.9
+CentOS7_ETCD_EBZ                      ansible_host=192.168.223.7 ansible_python_interpreter=/usr/bin/python3
+CentOS7_HaProxy1                      ansible_host=192.168.223.10 ansible_python_interpreter=/usr/bin/python3
+CentOS7_HaProxy2                      ansible_host=192.168.223.11
+CentOS7_PostgreSQL1                   ansible_host=192.168.223.5 ansible_python_interpreter=/usr/bin/python3
+CentOS7_PostgreSQL2                   ansible_host=192.168.223.6 ansible_python_interpreter=/usr/bin/python3
+CentOS7_Rabbit1                       ansible_host=192.168.223.8
+CentOS7_Rabbit2                       ansible_host=192.168.223.9
+Rancher-preprod                       ansible_host=192.168.223.21 ansible_python_interpreter=/usr/bin/python3
+Rancher-preprod2                      ansible_host=192.168.223.22 ansible_python_interpreter=/usr/bin/python3 
+Rancher-preprod3                      ansible_host=192.168.223.23 ansible_python_interpreter=/usr/bin/python3 
+Rancher-preprod4                      ansible_host=192.168.223.24 ansible_python_interpreter=/usr/bin/python3 
+Rancher-preprod5                      ansible_host=192.168.223.25 ansible_python_interpreter=/usr/bin/python3 
+RPGU-P24-BL3-P-223-3                  ansible_host=192.168.223.3 ansible_python_interpreter=/usr/bin/python3 
+IIS_BALANSER_BGP_TLS                  ansible_host=192.168.223.2
+AppNode1                              ansible_host=192.168.222.31
+AppNode2                              ansible_host=192.168.222.32
+AppNode3                              ansible_host=192.168.222.33
+AppNode4                              ansible_host=192.168.222.34
+AppNode5                              ansible_host=192.168.222.35
+Debian9.5_Git                         ansible_host=192.168.222.101
+EBZ-build-server                      ansible_host=192.168.222.9
+EBZdb1                                ansible_host=192.168.222.36
+EBZdb2                                ansible_host=192.168.222.37
+EBZdb3                                ansible_host=192.168.222.38
+EBZmq1                                ansible_host=192.168.222.39
+EBZmq2                                ansible_host=192.168.222.40
+#LnxDebian9.9EBZtst                    ansible_host=10.0.14.26
+LoadBalancer1_10                      ansible_host=192.168.222.12
+#LoadBalancer2_20                      ansible_host=192.168.222.20(тачка зависает)
+test_docker_debian                    ansible_host=192.168.222.30
+GU-P24-APP-28-78                      ansible_host=192.168.28.78
+CLD-P24-APP-1-173                     ansible_host=10.0.1.173
+CLD-P24-DBM1-P-1-191                  ansible_host=10.0.1.191
+CLD-P24-DBM1-P-1-192                  ansible_host=10.0.1.192
+CLD-P24-P7-P-1-177                    ansible_host=10.0.1.177
+Cloud_Balanser                        ansible_host=91.230.91.36
+Cloud_doc4                            ansible_host=10.0.1.174
+ELK-p24-lst01                         ansible_host=10.0.1.87
+AstraLinux_PostgreSQL                 ansible_host=10.0.224.2
+CentOS7_ElasticSearch                 ansible_host=10.0.224.12
+CentOS7_Mongo_Rx_OGV_Razr             ansible_host=10.0.224.16
+CentOS7_Nginx                         ansible_host=10.0.224.1
+CentOS7_Rabbit01                      ansible_host=10.0.224.5
+CentOS_Redis                          ansible_host=10.0.224.6 ansible_python_interpreter=/usr/bin/python3
+DSP-P24-APP1-T-123-17                 ansible_host=192.168.123.17
+CLD_MFC-P24-APP-34-145                ansible_host=192.168.34.145 ansible_python_interpreter=/usr/bin/python3
+CLD_CTR-P24-APP-34-165                ansible_host=192.168.34.165
+#MTVS-Haproxy01                        ansible_host=192.168.21.86
+CLD-P24-BL-T-1-180                    ansible_host=10.0.1.180  ansible_python_interpreter=/usr/bin/python3
+CLD-P24-P7-T-1-174                    ansible_host=10.0.1.174
+Moodle-P24-APP-P-1-170                ansible_host=192.168.32.62
+#izh.ru                                ansible_host=192.168.31.130
+#IZH.RU_Base                           ansible_host=192.168.31.131
+#zp-107-ric01                          ansible_host=192.168.32.107
+RXArch-P24-BL-P-122-2                 ansible_host=192.168.122.2
+
+[dir_rx]
+#Directum RX(NEW)
+MEV-P24-APP-P-127-11                  ansible_host=192.168.127.11
+MEV-P24-APP-P-127-12                  ansible_host=192.168.127.12
+MEV-P24-APP-P-127-13                  ansible_host=192.168.127.13
+MEV-P24-APP-P-127-14                  ansible_host=192.168.127.14
+MEV-P24-FS-P-127-15                   ansible_host=192.168.127.15
+MEV-P24-FS-P-127-16                   ansible_host=192.168.127.16
+MEV-P24-FS-P-127-17                   ansible_host=192.168.127.17
+MEV-P24-FS-P-127-18                   ansible_host=192.168.127.18
+MEV-P24-NMD-P-127-19                  ansible_host=192.168.127.19
+MEV-P24-NMD-P-127-20                  ansible_host=192.168.127.20
+MEV-P24-BL-P-127-21                   ansible_host=192.168.127.21
+MEV-P24-BL-P-127-22                   ansible_host=192.168.127.22
+MEV-P24-DBM-P-127-23                  ansible_host=192.168.127.23
+MEV-P24-DCS-P-127-24                  ansible_host=192.168.127.24
+MEV-P24-ES-P-127-25                   ansible_host=192.168.127.25
+MEV-P24-MNTR-P-127-26                 ansible_host=192.168.127.26
+MEV-P24-LOG-P-127-27                  ansible_host=192.168.127.27
+MEV-P24-ARIO-P-127-28                 ansible_host=192.168.127.28
+MEV-P24-MQ-P-127-29                   ansible_host=192.168.127.29
+MEV-P24-MQ-P-127-30                   ansible_host=192.168.127.30
+MEV-P24-MQ-P-127-31                   ansible_host=192.168.127.31
+#Directum RX(NEW) Test
+MEV-P24-APP-T-250-2                   ansible_host=10.0.250.2
+MEV-P24-ARIO-T-250-3                  ansible_host=10.0.250.3
+MEV-P24-MNTR-T-250-4                  ansible_host=10.0.250.4
+
+[gis_vm]
+ISOGD-WWW                             ansible_host=192.168.61.2
+#EISUKS_app                            ansible_host=192.168.21.131
+#EISUKS_bd                             ansible_host=192.168.21.132
+#GA-P24-WEB1-P-28-14                   ansible_host=192.168.28.14
+MDL-P24-APP1-P-28-18                  ansible_host=192.168.28.18 ansible_python_interpreter=/usr/bin/python3
+MKD-P24-BKP1-P-28-43                  ansible_host=192.168.28.43
+MKD-P24-DBM1-P-28-44                  ansible_host=192.168.28.44
+MKD-P24-FS1-P-28-45                   ansible_host=192.168.28.45
+MKD-P24-WEB1-P-28-42                  ansible_host=192.168.28.42
+MRH-P24-APP1-P-28-74                  ansible_host=192.168.28.74 ansible_python_interpreter=/usr/bin/python3
+MRH-P24-APP1-TEST                     ansible_host=192.168.28.50 ansible_python_interpreter=/usr/bin/python3
+#YB-P24-APP1-P-28-54                   ansible_host=192.168.28.54 #(выключена)
+OGD-P24-APP1-P-28-58                  ansible_host=192.168.28.58
+OGD-P24-DBM1-P-28-59                  ansible_host=192.168.28.59
+# OGD-P24-FS1-P-28-60                   ansible_host=192.168.28.60 завишая тачка
+OGD-P24-JOB1-P-28-61                  ansible_host=192.168.28.61
+ISOGD-FS                              ansible_host=192.168.28.100
+#ISOGD-GIS-glazov                      ansible_host=192.168.28.102 #(отсутствует гетевау)
+ISOGD-GIS1                            ansible_host=192.168.28.101
+ISOGD-GIS3                            ansible_host=192.168.28.103
+ISOGD-GIS4                            ansible_host=192.168.28.104
+ISOGD-INTEGRATION                     ansible_host=192.168.61.4
+ISOGD-SQL                             ansible_host=192.168.28.99
+#ISOGD-WEB                             ansible_host=192.168.28.98 #(не стандартный гетевау)
+#Dell_EMC_R740                         ansible_host=192.168.28.130 #физический сервак видеоаналитики с видеокартами
+#AppStorage                            ansible_host=192.168.28.154
+#Archive                               ansible_host=192.168.28.153
+#Connector1                            ansible_host=192.168.28.151
+#Connector2                            ansible_host=192.168.28.152
+#DB1                                   ansible_host=192.168.28.139
+#DB2                                   ansible_host=192.168.28.140
+#DB3                                   ansible_host=192.168.28.141
+#Portal1                               ansible_host=192.168.28.142
+#Portal2                               ansible_host=192.168.28.143
+#REC1                                  ansible_host=192.168.28.131
+#REC2                                  ansible_host=192.168.28.132
+#REC3                                  ansible_host=192.168.28.133
+#REC4                                  ansible_host=192.168.28.134
+#REC5                                  ansible_host=192.168.28.135
+#REC6                                  ansible_host=192.168.28.136
+#Repeater1                             ansible_host=192.168.28.137
+#Repeater2                             ansible_host=192.168.28.138
+#Services1                             ansible_host=192.168.28.144
+#Services2                             ansible_host=192.168.28.145
+#Services3                             ansible_host=192.168.28.146
+#Services4                             ansible_host=192.168.28.147
+#Services5                             ansible_host=192.168.28.148
+#Services6                             ansible_host=192.168.28.149
+#SKOU                                  ansible_host=192.168.28.150
+#VIDAN-P24-APP-28-155                  ansible_host=192.168.28.155 #физический сервак
+MNPRD-P24-APP-31-4                    ansible_host=192.168.31.4
+MNPRD-P24-APP-31-5                    ansible_host=192.168.31.5
+MNPRD-P24-APP-31-5_clone              ansible_host=10.0.0.20
+ObrashchenieSOthodami                 ansible_host=192.168.31.2
+#ASN-P24-APP-29-19                     ansible_host=192.168.29.19 выключенные
+#ASN-P24-DBM1-29-20                    ansible_host=192.168.29.20 выключенные
+#ASN-P24-DBM2-29-21                    ansible_host=192.168.29.21 выключенные
+#ASN-P24-DBM3-29-22                    ansible_host=192.168.29.22 выключенные
+#ASN-P24-MB-29-23                      ansible_host=192.168.29.23 выключенные
+#ASN-P24-MNTR-29-24                    ansible_host=192.168.29.24 выключенные
+#ASN-P24-WEB-29-18                     ansible_host=192.168.29.18 выключенные
+DIST-LEARN_APP                        ansible_host=192.168.31.18
+DIST-LEARN_BD                         ansible_host=192.168.31.19
+DST-P24-APP-T-31-20                   ansible_host=192.168.31.20
+DST-P24-DBM-T-31-21                   ansible_host=192.168.31.21
+IMTV-P24-APP-P-225-2                  ansible_host=192.168.225.2
+IMTV-P24-BD-P-225-3                   ansible_host=192.168.225.3
+IMTV-P24-FS-P-225-4                   ansible_host=192.168.225.4
+IMTV-P24-WEB-P-225-5                  ansible_host=192.168.225.5
+RNIS-bal-01                           ansible_host=192.168.31.34
+RNIS-ch-01                            ansible_host=192.168.31.62
+RNIS-mng-01                           ansible_host=192.168.31.47
+RNIS-mng-02                           ansible_host=192.168.31.48
+RNIS-mng-03                           ansible_host=192.168.31.49
+RNIS-mng-04                           ansible_host=192.168.31.50
+RNIS-mng-05                           ansible_host=192.168.31.51
+RNIS-mng-06                           ansible_host=192.168.31.59
+RNIS-mng-arb-01                       ansible_host=192.168.31.38
+RNIS-mng-bal-01                       ansible_host=192.168.31.37
+RNIS-mng-cfg-01                       ansible_host=192.168.31.39
+RNIS-mng-cfg-02                       ansible_host=192.168.31.40
+RNIS-mng-cfg-03                       ansible_host=192.168.31.41
+RNIS-mng-geo-01                       ansible_host=192.168.31.42
+RNIS-mng-geo-02                       ansible_host=192.168.31.60
+RNIS-msrvc-01                         ansible_host=192.168.31.46
+RNIS-msrvc-02                         ansible_host=192.168.31.52
+RNIS-msrvc-03                         ansible_host=192.168.31.53
+RNIS-msrvc-04                         ansible_host=192.168.31.54
+RNIS-msrvc-05                         ansible_host=192.168.31.55
+RNIS-msrvc-06                         ansible_host=192.168.31.56
+RNIS-nfs-01                           ansible_host=192.168.31.35
+RNIS-osrm-01                          ansible_host=192.168.31.61
+RNIS-P24-FS-33-210                    ansible_host=192.168.33.210
+RNIS-pgsql-01                         ansible_host=192.168.31.57
+RNIS-pgsql-02                         ansible_host=192.168.31.58
+RNIS-rancher-01                       ansible_host=192.168.31.45
+RNIS-redis-01                         ansible_host=192.168.31.43
+RNIS-redis-02                         ansible_host=192.168.31.44
+RNIS-service-01                       ansible_host=192.168.31.36
+MDL-P24-APP1-P-32-62                  ansible_host=192.168.32.62
+MKD-P24-DBM1-P-33-226                 ansible_host=192.168.33.226
+MKD-P24-ECP-P-33-229                  ansible_host=192.168.33.229
+MKD-P24-FS-P-33-228                   ansible_host=192.168.33.228
+MKD-P24-INTG-P-33-230                 ansible_host=192.168.33.230
+MKD-P24-MNTR-P-33-231                 ansible_host=192.168.33.231
+MKD-P24-WEB1-P-33-227                 ansible_host=192.168.33.227
+POST-P24-BE01-50-84                   ansible_host=192.168.50.84
+POST-P24-BE02-50-85                   ansible_host=192.168.50.85
+POST-P24-FE01-50-86                   ansible_host=192.168.50.86
+POST-P24-FE02-50-87                   ansible_host=192.168.50.87
+POST-P24-LDAP-50-5                    ansible_host=192.168.50.5
+POST-P24-NAS-50-15                    ansible_host=192.168.50.15
+bi-connector                          ansible_host=192.168.50.67
+DTC-P24-POST-50-10                    ansible_host=192.168.50.10
+socbe101                              ansible_host=192.168.50.132
+socbe102                              ansible_host=192.168.50.133
+soc-nas                               ansible_host=192.168.50.135
+#BI-P24-APP1-P-74-2                    ansible_host=192.168.74.2
+
+[pis_admin]
+BI-P24-APP1-T-74-10                   ansible_host=192.168.74.10
+
+[gis_vm]
+#Lingware                              ansible_host=10.0.0.15
+#MFC-P24-APP1-78-21                    ansible_host=192.168.78.21
+#sgs124-asr01                          ansible_host=192.168.78.5
+#sgs124-db01                           ansible_host=192.168.78.4
+#sgs124-storage                        ansible_host=192.168.78.6
+#sgs124-uc01                           ansible_host=192.168.78.2
+#sgs124-web01                          ansible_host=192.168.78.3
+#MFC-P24-PRX1-91-44                    ansible_host=91.230.91.44
+#mfc-sgs-asr-node1                     ansible_host=192.168.78.16
+#mfc-sgs-asr-node2                     ansible_host=192.168.78.17
+#mfc-sgs-asr-node3                     ansible_host=192.168.78.18
+#mfc-sgs-datastor                      ansible_host=192.168.78.20
+#mfc-sgs-db-node1                      ansible_host=192.168.78.12
+#mfc-sgs-db-node2                      ansible_host=192.168.78.13
+#mfc-sgs-lingware-srv                  ansible_host=192.168.78.19
+#mfc-sgs-mrcp-srv-1                    ansible_host=192.168.78.14
+#mfc-sgs-mrcp-srv-2                    ansible_host=192.168.78.15
+#mfc-sgs-secondary-uc                  ansible_host=192.168.78.9
+#mfc_sgs_primary_uc                    ansible_host=192.168.78.8 СоловьевРВ открыл для сетевиков
+#mfs-sgs-websrv-node1                  ansible_host=192.168.78.10
+#mfs-sgs-websrv-node2                  ansible_host=192.168.78.11
+#MFC-P24-ZBS-P-78-24                   ansible_host=192.168.78.24
+MFPU-P24-APP-99-2                     ansible_host=192.168.99.2
+MFPU-P24-APP2-P-99-4                  ansible_host=192.168.99.4
+MFPU-P24-DBM1-P-99-3                  ansible_host=192.168.99.3
+MFPU-P24-DBM-99-5                     ansible_host=192.168.99.5
+SMSV-P24-DBM-99-221                   ansible_host=192.168.99.221
+SMSV-P24-WEB-99-220                   ansible_host=192.168.99.220 ansible_python_interpreter=/usr/bin/python3
+EDS-P24-APP1-P-100-125                ansible_host=192.168.100.125
+EDS-P24-APP2-P-100-199                ansible_host=192.168.100.199
+EDS-P24-DBM2-P-100-142                ansible_host=192.168.100.142
+OBR-P24-WEB1-P-100-100                ansible_host=192.168.100.100
+#EDS-P24-APP-T-100-122                 ansible_host=192.168.100.122
+#EDS-P24-DBM-T-100-121                 ansible_host=192.168.100.121
+EDS-P24-APP1-P-100-124                ansible_host=192.168.100.124
+EDS-P24-DBM1-P-100-123                ansible_host=192.168.100.123
+ES-P24-APP1-P-100-143                 ansible_host=192.168.100.143
+ES-P24-APP2-P-100-147                 ansible_host=192.168.100.147
+ES-P24-APP3-P-100-146                 ansible_host=192.168.100.146
+ES-P24-APP4-P-100-148                 ansible_host=192.168.100.148
+ES-P24-DBM1-P-100-145                 ansible_host=192.168.100.145
+ES-P24-DBM2-P-100-144                 ansible_host=192.168.100.144
+ES-P24-WEB2-P-100-141                 ansible_host=192.168.100.141
+ES-P24-DBM3-P-100-154                 ansible_host=192.168.100.154
+MinFinPu-bd                           ansible_host=192.168.100.151
+MinFinrPu-apps                        ansible_host=192.168.100.150
+EK-P24-APP-T-100-2                    ansible_host=192.168.100.2
+EK-P24-DBM-T-100-3                    ansible_host=192.168.100.3 ansible_python_interpreter=/usr/bin/python3
+EK-P24-APP1-P-100-158                 ansible_host=192.168.100.158
+EK-P24-DBM1-P-100-237                 ansible_host=192.168.100.237
+
+[mfc]
+Bl_APP                                ansible_host=192.168.101.19
+BL_DB                                 ansible_host=192.168.101.22
+fsapp                                 ansible_host=192.168.101.16
+fsbd                                  ansible_host=192.168.101.17
+mfc-el-queue                          ansible_host=192.168.101.20
+MFC-P24-APP6-P-101-23                 ansible_host=192.168.101.23
+MFC-P24-APP7-P-101-24                 ansible_host=192.168.101.24
+MFC-P24-BKP1-101-30                   ansible_host=192.168.101.30
+mfcapp                                ansible_host=192.168.101.10
+mfcbd                                 ansible_host=192.168.101.11
+mfcbdslave                            ansible_host=192.168.101.18
+mfcsolr                               ansible_host=192.168.101.12
+proxy-http                            ansible_host=192.168.101.9
+siteappbd                             ansible_host=192.168.101.21
+smartcallappbd                        ansible_host=192.168.101.13
+smartcontrol                          ansible_host=192.168.101.31
+srapp                                 ansible_host=192.168.101.14
+srbd                                  ansible_host=192.168.101.15
+
+[gis_vm]
+VGK-P24-APPLOADER                     ansible_host=192.168.205.35
+VGK-P24-APPSERVER                     ansible_host=192.168.205.36
+VGK-P24-FVF_WEB                       ansible_host=192.168.205.37
+VGK-p24-GEOSERVER                     ansible_host=192.168.205.34
+VGK-P24-INTERACTION                   ansible_host=192.168.205.39
+VGK-P24-STREAMBD                      ansible_host=192.168.205.38
+EFR-P24-APP-29-14                     ansible_host=192.168.29.14
+SPOZ-P24-APP1-P-221-202               ansible_host=192.168.221.202 ansible_python_interpreter=/usr/bin/python3
+SPOZ-P24-APP2-P-221-203               ansible_host=192.168.221.203 ansible_python_interpreter=/usr/bin/python3
+SPOZ-P24-DBM1-P-221-204               ansible_host=192.168.221.204 ansible_python_interpreter=/usr/bin/python3
+SPOZ-P24-DBM2-P-221-205               ansible_host=192.168.221.205 ansible_python_interpreter=/usr/bin/python3
+SPOZ-P24-WEB1-P-221-200               ansible_host=192.168.221.200 ansible_python_interpreter=/usr/bin/python3
+SPOZ-P24-WEB2-P-221-201               ansible_host=192.168.221.201 ansible_python_interpreter=/usr/bin/python3
+GP-P24-WEB1-P-91-21                   ansible_host=91.230.91.21
+GP-P24-WEB2-P-91-22                   ansible_host=91.230.91.22
+KAPREMONT-APP                         ansible_host=91.230.91.35 ansible_python_interpreter=/usr/bin/python3
+KAPREMONT-SQL                         ansible_host=10.0.15.21 ansible_python_interpreter=/usr/bin/python3
+AISGKO_linux                          ansible_host=10.0.15.33
+GKO-P24-APP-T-15-34                   ansible_host=10.0.15.34
+#Energy_DB                             ansible_host=10.0.15.41 #(ёбаная кривая сеть)
+#Energy_WWW                            ansible_host=91.230.91.48
+#Rosreestr_APP                         ansible_host=10.18.70.51 #(не доступен по ssh)
+#Rosreestr_APP2                        ansible_host=10.18.70.10 #(не доступен по ssh)
+#Rosreestr_DB                          ansible_host=10.18.70.50 #(не доступен по ssh)
+OGV-P24-APP-80-2                      ansible_host=192.168.80.2
+OGV-P24-WEB-80-3                      ansible_host=192.168.80.3
+#KDR-P24-CSP-28-66                     ansible_host=192.168.28.66
+#KDR-P24-DBM-28-67                     ansible_host=192.168.28.67
+#KDR-P24-WEB-28-68                     ansible_host=192.168.28.68
+#Test_Kripto-PRO                       ansible_host=172.18.34.17 #(выключена)
+#Test_ServerBD                         ansible_host=172.18.34.16 #(выключена)
+#Test_ServerWWW                        ansible_host=172.18.34.15 #(выключена)
+AFD-P24-APP-28-26                     ansible_host=192.168.28.26
+#Debian9-AlfaDebian                    ansible_host=172.18.34.44 #(неведомы костыли)
+#Bars-PaidServices-base_new_test       ansible_host=192.168.100.191
+#Bars-PaidServices-Pril_new_test       ansible_host=192.168.100.190
+CON-P24-APP-29-38                     ansible_host=192.168.29.38
+SZOU-P24-APP-119-2                    ansible_host=192.168.119.2
+SZOU-P24-DBM-119-3                    ansible_host=192.168.119.3
+
+[sos_admins]
+KDR-P24-CSP-28-66                     ansible_host=192.168.28.66
+KDR-P24-DBM-28-67                     ansible_host=192.168.28.67
+KDR-P24-WEB-28-68                     ansible_host=192.168.28.68
+
+[linux:children]
+# own_vm
+# anti_ib
+pis_dev
+pis_admin
+dir_rx
+gis_vm
+sos_admins
+mfc
+

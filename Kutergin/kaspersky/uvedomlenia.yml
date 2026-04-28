@@ -1,0 +1,46 @@
+---
+- name: Отправить уведомление пользователю в GUI (RedOS + MATE)
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Найти PID процесса mate-session
+      ansible.builtin.shell: ps aux | grep '[m]ate-session' | awk '{print $2; exit}' || echo "not_found"
+      register: pid
+      changed_when: false
+
+    - name: Пропустить, если mate-session не найден
+      ansible.builtin.debug:
+        msg: "GUI-сессия не обнаружена"
+      when: pid.stdout == "not_found"
+
+    - name: Получить UID пользователя
+      ansible.builtin.shell: ps -o uid= -p "{{ pid.stdout | trim }}"
+      register: user_uid
+      when: pid.stdout != "not_found"
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Получить имя пользователя по UID
+      ansible.builtin.shell: id -nu "{{ user_uid.stdout | trim }}"
+      register: full_username
+      when: user_uid.stdout is defined and user_uid.stdout | trim != ""
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Отправить уведомление
+      ansible.builtin.command: >
+        sudo -u {{ full_username.stdout | trim }}
+        env DISPLAY=:0
+        DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{{ user_uid.stdout | trim }}/bus
+        notify-send -t 0 --urgency=critical --icon=dialog-warning
+        'Kaspersky сканирование рабочих станций'
+        'Начнётся в 19:00. Не выключайте компьютер!'
+      when: full_username.stdout is defined and full_username.stdout | trim != ""
+      become: yes
+
+    - name: Лог — уведомление отправлено
+      ansible.builtin.debug:
+        msg: "✅ Уведомление отправлено: {{ full_username.stdout | trim }} (UID={{ user_uid.stdout | trim }})"
+      when: full_username.stdout is defined and full_username.stdout | trim != ""

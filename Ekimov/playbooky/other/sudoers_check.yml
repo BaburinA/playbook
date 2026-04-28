@@ -1,0 +1,37 @@
+- name: Сбор sudoers с всех хостов
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Чтение текущего блока sudoers от #includedir
+      shell: awk '/^#includedir \/etc\/sudoers.d/,0' /etc/sudoers
+      register: sudoers_before
+
+    - name: Формирование строки для сохранения
+      set_fact:
+        ip: "{{ ansible_host | default(inventory_hostname) }}"
+        output_message: "{{ (ansible_host | default(inventory_hostname)) }},{{ sudoers_before.stdout_lines | map('regex_replace', '#includedir /etc/sudoers.d', '') | join(',') }}"
+
+    - name: Проверка существования файла
+      stat:
+        path: "/home/ekimov_vi/sudoers.csv"
+      register: file_stat
+      delegate_to: localhost
+
+    - name: Добавление заголовков в файл, если файл пустой
+      lineinfile:
+        dest: "/home/ekimov_vi/sudoers.csv"
+        line: "Ip,Содержимое sudoers"
+        create: yes
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Сохранение в файл
+      lineinfile:
+        dest: "/home/ekimov_vi/sudoers.csv"
+        line: "{{ output_message }}"
+        insertafter: EOF
+        create: yes
+        mode: "0755"
+      delegate_to: localhost

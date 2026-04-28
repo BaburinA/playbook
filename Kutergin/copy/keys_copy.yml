@@ -1,0 +1,71 @@
+---
+- name: Устанока rsa ключей для пользователей без python
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    path: /home/sitdikov_tr/ansible/copy/
+    lookup_key: "{{ lookup('file', '/home/distribution/pub/id_rsa_trofimov_va.pub') }}" # Обязательно указывай путь до ключа
+    user: "ansible-ib"
+
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+    - name: Создение папки .ssh и добавление rsa ключа в authorized_keys
+      raw: |-
+        # Проверка пользователя
+        if id "{{user}}" >/dev/null 2>&1; then
+          # Проверка домашней папки пользователя
+          if [ -d /home/{{user}} ] ; then
+            # Создание каталога .ssh если его не существует
+            if [ ! -d "{{dir_ssh}}" ]; then
+              mkdir -m 700 {{dir_ssh}}
+              chown {{user}}:{{user}} {{dir_ssh}}
+            fi
+            # Создание файла authorized_keys если его не существует
+            if [ ! -f "{{file_auth}}" ]; then
+              touch {{file_auth}}
+              chmod 600 {{file_auth}}
+              chown {{user}}:{{user}} {{file_auth}}
+            fi
+            # Добавление rsa ключа в файл authorized_keys если его нет
+            if ! grep -q "{{ lookup_key }}" {{ file_auth }}; then
+              echo "{{ lookup_key }}" >> {{ file_auth }} ;
+              echo "ключ добавлен" ;
+            else
+              echo "ключ уже существует" ;
+            fi
+          else
+            echo "нет домашней папки";
+          fi
+        else
+          echo "{{user}} не найден";
+        fi
+      register: res
+      vars:
+        dir_ssh: /home/{{user}}/.ssh
+        file_auth: /home/{{user}}/.ssh/authorized_keys
+
+    - name: Устанока фактов
+      set_fact:
+        ip: "{{ ansible_host }}"
+        massage: "{{ res.stdout | regex_replace('\\n|\\r','') }}"
+
+    - debug:
+        msg: "{{ip}},{{massage}}"
+
+    - name: Создание отчета
+      local_action:
+        module: lineinfile
+        path: "{{path}}/{{user}}.csv"
+        line: "{{ip}},{{massage}}"
+        create: yes
+        mode: '0677'
+        regexp: "^{{ip}},"
+        insertafter: EOF
+      when: input == 'y' | default('n')
+
+

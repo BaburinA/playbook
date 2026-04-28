@@ -1,0 +1,83 @@
+- name: Инвенторизация
+  become: no
+  gather_facts: no
+  hosts: all
+#  serial: 2
+  vars:
+    path: /home/sitdikov_tr/ansible/info_szi_cb_new.csv
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+    - name: Название линукс
+      shell: "cat /etc/os-release | grep PRETTY"
+      register: nameos
+
+    - name: Проверка ядра
+      shell: "uname -r"
+      register: core
+
+    - name: Проверка drweb-agent
+      shell: "drweb-ctl -v"
+      register: ver01
+      ignore_errors: true
+
+    - name: Проверка Kaspersky
+      shell: "rpm -qa | grep -E 'klnagent|lightagent'"
+      register: ver02
+      ignore_errors: true
+
+# dpkg -I
+
+    - name: Проверка idshs
+      shell: "idshs-agent -V"
+      register: ver2
+      ignore_errors: true
+
+    - name: Проверка snlsp
+      shell: "cat /opt/secretnet/etc/secretnet-release"
+      register: ver3
+      ignore_errors: true
+
+    - name: Проверка sns linux
+      shell: "cat /opt/securitycode/sns/etc/secretnet-release"
+      register: ver4
+      ignore_errors: true
+
+    - name: Проверка siagnet
+      shell: "rpm -qa | grep siagent"
+      register: ver5
+      ignore_errors: true
+
+    - name: Установка фактов
+      set_fact:
+        ip: "{{ansible_host}}"
+        massage: "{{','.join([
+          nameos.stdout | regex_replace('PRETTY_NAME=\"|\"',''),
+          core.stdout | default(''),
+          ver01.stdout | default(''),
+          ver02.stdout | regex_replace('\n',' ') if 'RED OS' in nameos.stdout or 'CentOS' in nameos.stdout else '',
+          ver2.stdout_lines[1] | default('') | regex_replace('version: '),
+          ver3.stdout | default(''),
+          ver4.stdout | default(''),
+          ver5.stdout | default('')
+        ])}}"
+
+    - name: Сохранение в {{path}}
+      local_action:
+        module: lineinfile
+        regexp: "^{{ip}},"
+        line: "{{ip}},{{massage}}"
+        dest: "{{path}}"
+        mode: "0755"
+        create: true
+        insertafter: EOF
+      when: input | default('n') == 'y'
+
+    - name: debug
+      debug:
+        msg: "{{ip}},{{massage}}"
+
+

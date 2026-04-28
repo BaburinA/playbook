@@ -1,0 +1,75 @@
+- name: Инвенторизация
+  become: no
+  gather_facts: no
+  hosts: all
+  vars:
+    path: /home/sitdikov_tr/ansible/info.csv
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (y/n)"
+      private: no
+
+  tasks:
+    - name: Название линукс
+      shell: "cat /etc/*release | grep PRETTY"
+      register: nameos
+
+    - name: Проверка ядра
+      shell: "uname -r"
+      register: core
+
+    - name: Проверка drweb-agent
+      shell: "drweb-ctl -v"
+      register: ver01
+      ignore_errors: true
+
+    - name: Проверка idshs
+      shell: "idshs-agent -V"
+      register: ver2
+      ignore_errors: true
+
+    - name: Проверка snlsp и sns linux
+      shell: |
+        if [ -f /opt/secretnet/etc/secretnet-release ]; then
+          cat /opt/secretnet/etc/secretnet-release
+        elif [ -f /opt/securitycode/sns/etc/secretnet-release ]; then
+          cat /opt/securitycode/sns/etc/secretnet-release
+        else
+          echo ""
+        fi
+      register: ver3
+      ignore_errors: true
+
+    - name: Проверка siagnet
+      shell: "rpm -qi siagent | grep Version"
+      register: ver4
+      ignore_errors: true
+
+    - name: Установка фактов
+      set_fact:
+        ip: "{{ansible_host}}"
+        massage: "{{','.join([
+          nameos.stdout | regex_replace('PRETTY_NAME=\"|\"'),
+          core.stdout | default(''),
+          ver01.stdout | default(''),
+          ver2.stdout_lines[1] | default('') | regex_replace('version: '),
+          ver3.stdout | default(''),
+          ver4.stdout | default('') | regex_replace('Version     : ')
+        ])}}"
+
+    - name: Сохранение в {{path}}
+      local_action:
+        module: lineinfile
+        regexp: "^{{ip}},"
+        line: "{{ip}},{{massage}}"
+        dest: "{{path}}"
+        mode: "0755"
+        create: true
+        insertafter: EOF
+      when: input | default('n') == 'y'
+
+    - name: debug
+      debug:
+        msg: "{{ip}},{{massage}}"
+
+

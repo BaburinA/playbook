@@ -1,0 +1,14 @@
+- name: sns
+  hosts: us
+  become: yes
+
+  tasks:
+
+    - name: check rule
+      shell:
+        cmd: "sudo /opt/secretnet/bin/sndevctl -r --class-id=usb_storage"
+      register: qwe
+   
+    - debug:
+        var: qwe.stdout_lines
+      

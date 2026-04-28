@@ -1,0 +1,12 @@
+[redadm]
+192.168.7.4
+192.168.7.2
+192.168.7.3
+
+[test_ogd]
+10.0.0.246
+
+[all:vars]
+ansible_user=ansible-ib
+ansible_ssh_user=ansible-ib
+ansible_ssh_private_key_file=~/.ssh/id_rsa

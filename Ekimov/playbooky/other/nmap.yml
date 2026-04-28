@@ -1,0 +1,16 @@
+---
+- name: Сканирование уязвимостей с помощью nmap (локально)
+  hosts: all
+  gather_facts: no
+  vars:
+    output_file: "/home/ekimov_vi/nmap_all_results.txt"
+
+  tasks:
+    - name: Выполнить сканирование nmap и добавить результат в файл с разграничением
+      local_action:
+        module: shell
+        cmd: |
+          nmap -sV --script vulners {{ inventory_hostname }} >> {{ output_file }}
+          echo "=====================================================================================================================================================" >> {{ output_file }}
+          echo -e "\n\n" >> {{ output_file }}
+      changed_when: false

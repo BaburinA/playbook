@@ -1,0 +1,39 @@
+# Инсталяция Drweb - WS
+---
+- hosts: "TestHosts"
+  become: true
+  tasks:
+
+  - name: Install a drweb-repo11.1.deb package from the internet
+    ansible.builtin.apt:
+      deb: https://repo.drweb.com/drweb/drweb-repo11.1.deb
+
+  - name: Run the equivalent of "apt-get update" as a separate step
+    ansible.builtin.apt:
+      update_cache: yes
+
+  - name: Upgrade apt-get dist-upgrade
+    ansible.builtin.apt:
+      upgrade: dist
+
+  - name: Install Drweb-WS for stations
+    ansible.builtin.apt:
+      name: drweb-workstations
+
+   - name: "Copy distrib Drweb-WS and key.pem"
+    ansible.builtin.copy:
+      src: ./Repos/drweb-key.tar.gz
+      dest: /home/admin1/drweb-key.tar.gz
+      mode: '0644'
+
+  - name: Extract szi.tar.gz into ~/
+    ansible.builtin.unarchive:
+      src: /home/admin1/drweb-key.tar.gz
+      dest: /home/admin1/
+      remote_src: yes
+
+
+  - name: Activate Drweb-WS connect to server
+    ansible.builtin.shell: /opt/drweb.com/bin/drweb-ctl esconnect 91.230.91.5:2193 --Certificate /home/admin1/szi/drwcsd-certificate.pem
+
+

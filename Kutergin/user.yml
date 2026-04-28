@@ -1,0 +1,26 @@
+---
+- name: Работа с учетной записью
+  gather_facts: no
+  become: yes
+  hosts: all
+  vars:
+    user: ansible-user
+    password:
+    key: "{{lookup('file','/home/sitdikov_tr/ansible/id_rsa1.pub')}}"
+    copy_key: no
+  tasks:
+    - name: Создание {{user}}
+      user:
+        state: present
+        user: "{{user}}"
+        shell: /bin/bash
+        create_home: yes
+        expires: -1
+
+    - name: Копирование ключа
+      authorized_key:
+        state: present
+        user: "{{user}}"
+        key: "{{key}}"
+      when: copy_key
+

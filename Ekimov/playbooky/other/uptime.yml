@@ -1,0 +1,23 @@
+---
+- name: Gather system information
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Get system uptime
+      command: uptime -p
+      register: uptime_result
+
+    - name: Get IP address
+      command: hostname -I
+      register: ip_result
+
+    - name: Get hostname
+      command: hostname
+      register: hostname_result
+
+    - name: Show gathered information
+      debug:
+        msg:
+          - "Host: {{ hostname_result.stdout }}"
+          - "IP Address: {{ ip_result.stdout }}"
+          - "Uptime: {{ uptime_result.stdout }}"

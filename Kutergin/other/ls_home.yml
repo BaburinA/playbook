@@ -1,0 +1,21 @@
+---
+- name: Вывод содержимого каталога /home
+  hosts: all
+  become: no
+  gather_facts: no
+
+  tasks:
+    - name: Получить список файлов и директорий в /home
+      ansible.builtin.command: ls -la /home
+      register: home_contents
+      ignore_errors: yes
+
+    - name: Вывести содержимое каталога /home
+      ansible.builtin.debug:
+        msg: "{{ home_contents.stdout_lines }}"
+      when: home_contents is defined and home_contents.rc == 0
+
+    - name: Сообщить об ошибке, если каталог недоступен
+      ansible.builtin.debug:
+        msg: "Ошибка при чтении каталога /home: {{ home_contents.stderr }}"
+      when: home_contents is defined and home_contents.rc != 0

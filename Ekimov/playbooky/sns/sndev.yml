@@ -1,0 +1,53 @@
+---
+- name: Настройка sndevctl и вывод состояния
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Включить Ethernet (net_ethernet)
+      command: /opt/securitycode/sns/bin/sndevctl -s --bus-class=net_ethernet --dc=enabled
+      register: ethernet_result
+      #async: 60
+      failed_when: ethernet_result.rc != 0
+
+    - name: Отключить USB Image (usb_image)
+      command: /opt/securitycode/sns/bin/sndevctl -s --bus-class=usb_image --dc=disabled
+      register: usb_image_result
+      #async: 60
+      failed_when: usb_image_result.rc != 0
+
+    - name: Отключить USB Phone (usb_phone)
+      command: /opt/securitycode/sns/bin/sndevctl -s --bus-class=usb_phone --dc=disabled
+      register: usb_phone_result
+      #async: 60
+      failed_when: usb_phone_result.rc != 0
+
+    - name: Отключить USB Storage (usb_storage)
+      command: /opt/securitycode/sns/bin/sndevctl -s --bus-class=usb_storage --dc=disabled
+      register: usb_storage_result
+      #async: 60
+      failed_when: usb_storage_result.rc != 0
+
+    - name: Показать вывод команд настройки
+      debug:
+        msg:
+          - "Ethernet: {{ ethernet_result.stdout }}"
+          - "USB Image: {{ usb_image_result.stdout }}"
+          - "USB Phone: {{ usb_phone_result.stdout }}"
+          - "USB Storage: {{ usb_storage_result.stdout }}"
+
+    - name: Показать текущее состояние DC-таблиц
+      command: /opt/securitycode/sns/bin/sndevctl -r --show-dc
+      register: dc_status
+
+    - name: Сохранить вывод DC в файл
+      local_action:
+        module: lineinfile
+        path: /home/ekimov_vi/sns_dc.txt
+        create: yes
+        line: |
+          =============================================== HOST: {{ inventory_hostname }} ===========================================================================================================
+          
+          {{ dc_status.stdout }}
+        insertafter: EOF
+      delegate_to: localhost

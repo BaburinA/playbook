@@ -1,0 +1,19 @@
+---
+- name: Работать с Excel
+  hosts: localhost
+  tasks:
+    - name: Изменить цвет ячейки
+      community.general:
+        path: /tmp/test.xlsx
+        sheet: Sheet1
+        cell: A1
+        style:
+          fill:
+            start_color: 'FFFF00'  # Жёлтый цвет
+            end_color: 'FFFF00'    # Жёлтый цвет
+            fill_type: solid
+      register: result
+
+    - name: Показать результат
+      debug:
+        var: result

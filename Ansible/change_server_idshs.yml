@@ -1,0 +1,24 @@
+---
+- hosts: StroyNadzor
+  gather_facts: False
+  tasks:
+
+    - name: Stop service vipnet-ids-hs-Agent
+      ansible.builtin.shell: systemctl stop vipnet-ids-hs-agent
+
+    - name: Stop service vipnet-ids-hs-Watcher
+      ansible.builtin.shell: systemctl stop vipnet-ids-hs-watcher
+
+    - name: Activate IDS-HS reconnect to server
+      ansible.builtin.shell: idshs-agent 192.168.34.231
+
+
+    - name: Start service vipnet-ids-hs-Agent
+      ansible.builtin.service:
+        name: vipnet-ids-hs-agent
+        state: started
+
+    - name: Start service vipnet-ids-hs-Watcher
+      ansible.builtin.service:
+        name: vipnet-ids-hs-watcher
+        state: started

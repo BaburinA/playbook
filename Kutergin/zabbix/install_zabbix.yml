@@ -1,0 +1,42 @@
+---
+- name: Установка zabbix2
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  ignore_unreachable: true
+
+  vars:
+    pack: zabbix-agent2
+
+  tasks:  # Исправлено здесь: заменено "task" на "tasks"
+    - name: Проверка наличия пакетного менеджера dpkg
+      stat:
+        path: /usr/bin/dpkg
+      register: dpkg_check
+
+    - name: Вывод результата проверки dpkg
+      debug:
+        msg: "Пакетный менеджер dpkg {{ 'найден' if dpkg_check.stat.exists else 'не найден' }}"
+
+    - name: Проверить, существует ли папка /etc/zabbix
+      stat:
+        path: /etc/zabbix
+      register: folder_result_zabbix
+      ignore_errors: yes
+
+    - name: Сообщение об установке zabbix2
+      debug:
+        msg: "zabbix2 {{ 'installed' if folder_result_zabbix.stat.exists else 'not installed' }}"  # Исправлена ошибка с кавычками
+
+    # - name: Установка zabbix (DEB)
+    #   apt:
+    #     name: "{{ pack }}"
+    #     state: present
+    #   when: dpkg_check.stat.exists and not folder_result_zabbix.stat.exists  # Исправлено условие
+
+    # - name: Установка zabbix (RPM)
+    #   yum:  # Используем dnf вместо yum для современных систем
+    #     name: "{{ pack }}"
+    #     state: present
+    #   when: not dpkg_check.stat.exists and not folder_result_zabbix.stat.exists  # Исправлено условие

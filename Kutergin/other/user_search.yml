@@ -1,0 +1,54 @@
+---
+- name: Сбор содержимого /home с хостов (с пропуском недоступных)
+  hosts: all
+  gather_facts: no
+  serial: 1
+  ignore_unreachable: yes
+
+  tasks:
+    - name: Проверка доступности хоста через ping
+      ansible.builtin.ping:
+      register: ping_result
+      ignore_errors: yes
+
+    - name: Получить список файлов из /home, если хост доступен
+      command: ls -l /home
+      register: home_files
+      when: ping_result.ping is defined and ping_result.ping == 'pong'
+
+    - name: Установить путь к выходному файлу
+      set_fact:
+        output_file: "{{ lookup('env', 'HOME') }}/home_listing.txt"
+
+    - name: Очистить файл перед началом работы (только для первого хоста)
+      delegate_to: localhost
+      run_once: yes
+      file:
+        dest: "{{ output_file }}"
+        state: touch
+      # Чтобы не очищать каждый раз — можно закомментировать или удалить
+
+    - name: Запись заголовка хоста
+      delegate_to: localhost
+      run_once: yes
+      lineinfile:
+        dest: "{{ output_file }}"
+        line: "{{ inventory_hostname }}\n----------------------------"
+
+    - name: Запись содержимого /home или сообщения об ошибке
+      delegate_to: localhost
+      run_once: yes
+      lineinfile:
+        dest: "{{ output_file }}"
+        line: "{{ (home_files.stdout | default('Не удалось получить данные: хост недоступен или произошла ошибка.')) }}"
+
+    - name: Добавление разделителя между хостами
+      delegate_to: localhost
+      run_once: yes
+      lineinfile:
+        dest: "{{ output_file }}"
+        line: "===========\n\n"
+
+    - name: Очистка переменной home_files для следующего хоста
+      set_fact:
+        home_files: {}

@@ -1,0 +1,61 @@
+---
+ - name: Перезагрузка службы sn.service и выполнение команды
+   hosts: uib
+   become: yes # Если требуется sudo
+   gather_facts: no
+   vars:
+     user: snsadmin
+   tasks:
+     - name: Полученине имени узла
+       shell: hostname
+       register: hostname
+
+     - name: Установленна ли библеотека pexpect
+       pip:
+         name: pexpect
+         state: present
+
+     - name: Проверка статуса подключения
+       ansible.builtin.shell: /opt/secretnet/bin/snnetctl -s
+       register: check
+
+     - name: Перезагрузка службы sn.service
+       ansible.builtin.shell: systemctl restart sn
+       when: '"отключено" in check.stdout_lines[0]'
+
+     - name: Ожидание 10 секунд
+       ansible.builtin.pause:
+         seconds: 10
+
+     - name: Выполнение команды snnetctl с запросом пароля
+       ansible.builtin.expect:
+         command: "/opt/secretnet/bin/snnetctl -e -u {{user}}"
+         responses:
+           "Пароль пользователя": "25@LjcFkbCnf"
+         timeout: 90
+       retries: 3
+       until: '"уже подключено" in output.stdout'
+       register: output
+       ignore_errors: true
+       when: '"отключено" in check.stdout_lines[0]'
+
+#     - name: Выполнение команды подключения повторно
+#       command: /opt/secretnet/bin/snnetctl -e -u snsadmin
+#       register: command_result
+#       when: "command_result.stderr is search('Неверный логин или пароль')"
+#       until: command_result.stderr is not search('Неверный логин или пароль')
+#       retries: 3
+#       delay: 10
+
+#     - name: Имя узла
+#       ansible.builtin.debug:
+#         var: hostname
+
+     - name: Вывод результата
+       ansible.builtin.debug:
+         msg:
+           - "{{hostname.stdout}}"
+           - "{{check.stdout_lines}}"
+           - "{{output.stdout_lines}}"
+       when: '"отключено" in check.stdout_lines[0]'
+

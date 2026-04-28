@@ -1,0 +1,45 @@
+[BVM]
+192.168.73.84	
+[VPN]
+192.168.124.115	ansible_ssh_host=192.168.124.115 ansible_ssh_user=ansible-ib ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+192.168.124.116	ansible_ssh_host=192.168.124.116 ansible_ssh_user=ansible-ib ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+[VNP]
+192.168.124.115	ansible_ssh_host=192.168.124.115 ansible_ssh_user=ssa ansible_ssh_password=Gtnheirf18@ ansible_sudo_pass=Gtnheirf18@
+192.168.124.116	ansible_ssh_host=192.168.124.116 ansible_ssh_user=ssa ansible_ssh_password=Gtnheirf18@ ansible_sudo_pass=Gtnheirf18@
+[DrwebS]
+192.168.32.145	ansible_ssh_host=192.168.32.145 ansible_ssh_user=ansible-ib ansible_ssh_password=ooM2ufuo02 ansible_sudo_pass=ooM2ufuo02
+[IB]
+192.168.70.162	ansible_ssh_host=192.168.70.162 ansible_ssh_user=ansible-ib
+192.168.70.163	ansible_ssh_host=192.168.70.163 ansible_ssh_user=ansible-ib
+192.168.70.164	ansible_ssh_host=192.168.70.164 ansible_ssh_user=ansible-ib
+192.168.70.165	ansible_ssh_host=192.168.70.165 ansible_ssh_user=ansible-ib
+#192.168.70.166	ansible_ssh_host=192.168.70.166 ansible_ssh_user=ansible-ib
+192.168.70.167	ansible_ssh_host=192.168.70.167 ansible_ssh_user=ansible-ib
+192.168.70.168	ansible_ssh_host=192.168.70.168 ansible_ssh_user=ansible-ib
+[SZI]
+192.168.70.130	ansible_ssh_host=192.168.70.130 ansible_ssh_user=ansible-ib
+192.168.70.131	ansible_ssh_host=192.168.70.131 ansible_ssh_user=ansible-ib
+192.168.70.132	ansible_ssh_host=192.168.70.132 ansible_ssh_user=ansible-ib
+192.168.70.133	ansible_ssh_host=192.168.70.133 ansible_ssh_user=ansible-ib
+192.168.70.134	ansible_ssh_host=192.168.70.134 ansible_ssh_user=ansible-ib
+192.168.70.135	ansible_ssh_host=192.168.70.135 ansible_ssh_user=ansible-ib
+192.168.70.139	ansible_ssh_host=192.168.70.139 ansible_ssh_user=ansible-ib
+192.168.70.140	ansible_ssh_host=192.168.70.140 ansible_ssh_user=ansible-ib
+192.168.70.149	ansible_ssh_host=192.168.70.149 ansible_ssh_user=ansible-ib
+[US]
+192.168.70.2	ansible_ssh_host=192.168.70.2 ansible_ssh_user=ansible-ib
+192.168.70.3	ansible_ssh_host=192.168.70.3 ansible_ssh_user=ansible-ib
+192.168.70.4	ansible_ssh_host=192.168.70.4 ansible_ssh_user=ansible-ib
+192.168.70.5	ansible_ssh_host=192.168.70.5 ansible_ssh_user=ansible-ib
+192.168.70.6	ansible_ssh_host=192.168.70.6 ansible_ssh_user=ansible-ib
+192.168.70.11	ansible_ssh_host=192.168.70.11 ansible_ssh_user=ansible-ib
+192.168.70.12	ansible_ssh_host=192.168.70.12 ansible_ssh_user=ansible-ib
+192.168.70.13	ansible_ssh_host=192.168.70.13 ansible_ssh_user=ansible-ib
+192.168.70.14	ansible_ssh_host=192.168.70.14 ansible_ssh_user=ansible-ib
+192.168.70.15	ansible_ssh_host=192.168.70.15 ansible_ssh_user=ansible-ib
+192.168.70.16	ansible_ssh_host=192.168.70.16 ansible_ssh_user=ansible-ib
+
+[CCT:children]
+IB
+SZI
+US

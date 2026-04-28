@@ -1,0 +1,267 @@
+---
+- name: Установка Kaspersky
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    way: /home/distribution/szi-for-linux/KESL/
+    way2: /home/{{ansible_user}}/KESL/
+    way3: /home/distribution/szi-for-linux/KESLASTRA/
+    way4: /home/{{ansible_user}}/KESLASTRA/
+    files:
+      klnagent: klnagent64-15.4.0-8873.x86_64.rpm
+      kesl: kesl-12.2.0-2412.x86_64.rpm
+      kesl_gui: kesl-gui-12.2.0-2412.x86_64.rpm
+      conf1: autoanswers.txt
+      conf2: autoinstall.ini
+      conf3_la: autoanswers_la.txt
+      conf4_la: autoinstall_la.ini
+      klnagent_dpkg: klnagent64_15.4.0-8873_amd64.deb
+      kesl_dpkg: kesl_12.2.0-2412_amd64.deb
+      kesl_gui_dpkg: kesl-gui_12.2.0-2412_amd64.deb
+      conf1_dpkg: autoanswers.txt
+      conf2_dpkg: autoinstall.ini
+      conf3_dpkg_la: autoanswers_la.txt
+      conf4_dpkg_la: autoinstall_la.ini
+
+
+  vars_prompt:
+    - name: input1
+      prompt: "Настроить klnagent64? (y/n)"
+      private: no
+
+    - name: input2
+      prompt: "Настроить kesl? (y/n)"
+      private: no
+
+    - name: gui
+      prompt: "Установить KESL-GUI? (y/n)"
+      private: no
+
+    - name: input_KVSLA
+      prompt: "Установка в режиме легкого агента?(y/n)"
+      private: no
+
+
+  tasks: ## Сделайть другую проверку
+    - name: Проверка наличия dpkg
+      stat:
+        path: /usr/bin/dpkg
+      register: dpkg_check
+
+    - name: Определение пакетного менеджера
+      set_fact:
+        pkg_manager: "{{ 'dpkg' if dpkg_check.stat.exists else 'rpm' }}"
+
+    - name: Вывод информации о пакетном менаджере
+      debug:
+          msg: "Пакетный менаджер: {{pkg_manager}}"
+
+
+    - name: Проверка установлен ли drweb-agent
+      shell: rpm -qa | grep drweb-esagent
+      register: drweb_installed
+      ignore_errors: yes 
+      when: pkg_manager == 'rpm'
+     
+
+    - name: Удаление drweb
+      shell: echo "Y" | sh /opt/drweb.com/bin/uninst.sh 
+      register: drweb_unistall
+      ignore_errors: yes
+      when: ("'drweb-esagent' in drweb_installed.stdout") and pkg_manager == 'rpm'
+
+    - name: Проверка удаления drweb
+      debug:
+        msg: "{{ drweb_unistall.stdout_lines }}"
+      when: ("'drweb-esagent' in drweb_installed.stdout") and pkg_manager == 'rpm'
+
+    - name: Проверка установлен ли kesl
+      shell: rpm -qa | grep kesl 
+      register: kesl_installed
+      ignore_errors: yes
+      when: ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and pkg_manager == 'rpm'
+            
+    - name: Копирование папки KESl
+      copy:
+        src: "{{way}}"
+        dest: "{{way2}}"
+      become: no
+      when: (((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed is defined)) and pkg_manager == 'rpm'
+  
+
+    - name: Установка '{{files.klnagent}}', '{{files.kesl}}'  
+      dnf:
+        name:
+          - '{{way2}}{{files.klnagent}}'
+          - '{{way2}}{{files.kesl}}'
+        state: present
+        disable_gpg_check: yes
+      when: (((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+    - name: Установка '{{file.kesl_gui_dpkg}}''
+      dnf:
+        name:
+          - '{{way2}}{{files.kesl_gui}}'
+        state: present
+        disable_gpg_check: yes
+      when: (((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+        
+    - name: Утсновка зависимостей perl
+      dnf:
+        name:
+          - perl
+          - curl
+        state: present
+        disable_gpg_check: yes
+      when: (((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+        
+
+    - name: Настройка klnagent64
+      shell: "KLAUTOANSWERS={{way2}}{{files.conf1}} /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl"
+      register: res1
+      when: (input1 | default('n') == 'y' and ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+    - name: Настройка kesl
+      shell: "/opt/kaspersky/kesl/bin/kesl-setup.pl --autoinstall={{way2}}{{files.conf2}}"
+      register: res2
+      when: (input2 | default('n') == 'y'and input_KVSLA | default('n') == 'n' and ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+    - name: Настройка kesl_ksvla
+      shell: "/opt/kaspersky/kesl/bin/kesl-setup.pl --autoinstall={{way2}}{{files.conf4_la}}"
+      register: res2
+      when: (input2 | default('n') == 'y'and input_KVSLA | default('n') == 'y' and ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+    - name: Результат настройки klnagent64
+      debug:
+        msg: "{{res1.stdout.split('\n')}}"
+      when: (input1 | default('n') == 'y' and ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+    - name: Результат настройки kesl
+      debug:
+        msg: "{{ res2.stdout.split('\n')}}"
+      when: (input2 | default('n') == 'y' and ((drweb_unistall is not defined) or ("'Подготовка пакетов...' in drweb_unistall.stdout")) and (kesl_installed.stdout | default('') == '')) and pkg_manager == 'rpm'
+
+
+
+        # ============ БЛОК ДЛЯ DPKG (Debian/Ubuntu) ============
+
+    - name: Проверка наличия Dr.Web по пути /opt/drweb.com (dpkg)
+      stat:
+        path: /opt/drweb.com
+      register: drweb_dir_check
+      when: pkg_manager == 'dpkg'
+
+    - name: Удаление Dr.Web (dpkg)
+      shell: echo "Y" | sh /opt/drweb.com/bin/uninst.sh
+      register: drweb_unistall_dpkg
+      ignore_errors: yes
+      when:
+        - pkg_manager == 'dpkg'
+        - drweb_dir_check.stat.exists
+
+    - name: Проверка удаления Dr.Web (dpkg)
+      debug:
+        msg: "{{ drweb_unistall_dpkg.stdout_lines }}"
+      when:
+        - pkg_manager == 'dpkg'
+        - drweb_dir_check.stat.exists
+
+    - name: Проверка наличия KESL по пути /opt/kaspersky/kesl (dpkg)
+      stat:
+        path: /opt/kaspersky/kesl
+      register: kesl_dir_check
+      when: pkg_manager == 'dpkg'
+
+    - name: Копирование папки KESL на целевой хост (dpkg)
+      copy:
+        src: "{{ way3 }}"
+        dest: "{{ way4 }}"
+      become: no
+      when:
+        - pkg_manager == 'dpkg'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Установка klnagent и kesl (dpkg)
+      apt:
+        deb: "{{ way4 }}{{ item }}"
+        state: present
+      loop:
+        - "{{ files.klnagent_dpkg }}"
+        - "{{ files.kesl_dpkg }}"
+      when:
+        - pkg_manager == 'dpkg'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Установка kesl-gui (dpkg)
+      apt:
+        deb: "{{ way4 }}{{ files.kesl_gui_dpkg }}"
+        state: present
+      when:
+        - pkg_manager == 'dpkg'
+        - gui | default('n') == 'y'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Установка зависимостей (dpkg)
+      apt:
+        name:
+          - perl
+          - curl
+        state: present
+      when:
+        - pkg_manager == 'dpkg'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Настройка klnagent64 (dpkg)
+      shell: "KLAUTOANSWERS={{ way4 }}{{ files.conf1_dpkg }} /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl"
+      register: res1_dpkg
+      when:
+        - pkg_manager == 'dpkg'
+        - input1 | default('n') == 'y'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Настройка kesl (dpkg)
+      shell: "/opt/kaspersky/kesl/bin/kesl-setup.pl --autoinstall={{ way4 }}{{ files.conf2_dpkg }}"
+      register: res2_dpkg
+      when:
+        - pkg_manager == 'dpkg'
+        - input2 | default('n') == 'y'
+        - input_KVSLA | default('n') == 'n'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Настройка kesl (dpkg) KSVLA
+      shell: "/opt/kaspersky/kesl/bin/kesl-setup.pl --autoinstall={{ way4 }}{{ files.conf4_dpkg_la }}"
+      register: res2_dpkg
+      when:
+        - pkg_manager == 'dpkg'
+        - input2 | default('n') == 'y'
+        - input_KVSLA | default('n') == 'y'
+        - (drweb_unistall_dpkg is not defined or "'Подготовка пакетов...' in drweb_unistall_dpkg.stdout")
+        - not kesl_dir_check.stat.exists
+
+    - name: Результат настройки klnagent64 (dpkg)
+      debug:
+        msg: "{{ res1_dpkg.stdout_lines | default([]) }}"
+      when:
+        - pkg_manager == 'dpkg'
+        - res1_dpkg is defined
+
+    - name: Результат настройки kesl (dpkg)
+      debug:
+        msg: "{{ res2_dpkg.stdout_lines | default([]) }}"
+      when:
+        - pkg_manager == 'dpkg'
+        - res2_dpkg is defined
+
+
+
+
+
+
+

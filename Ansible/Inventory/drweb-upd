@@ -1,0 +1,58 @@
+[DrwebOGV]
+192.168.32.145	ansible_ssh_host=192.168.32.145 ansible_ssh_user=ansible-ib 
+192.168.32.146	ansible_ssh_host=192.168.32.146 ansible_ssh_user=ansible-ib
+192.168.32.147	ansible_ssh_host=192.168.32.147 ansible_ssh_user=ansible-ib
+192.168.32.148	ansible_ssh_host=192.168.32.148 ansible_ssh_user=ansible-ib
+192.168.32.149	ansible_ssh_host=192.168.32.149 ansible_ssh_user=ansible-ib
+192.168.32.150	ansible_ssh_host=192.168.32.150 ansible_ssh_user=ansible-ib
+192.168.32.151	ansible_ssh_host=192.168.32.151 ansible_ssh_user=ansible-ib
+192.168.32.152	ansible_ssh_host=192.168.32.152 ansible_ssh_user=ansible-ib
+192.168.32.153	ansible_ssh_host=192.168.32.153 ansible_ssh_user=ansible-ib
+192.168.32.154	ansible_ssh_host=192.168.32.154 ansible_ssh_user=ansible-ib
+192.168.32.155	ansible_ssh_host=192.168.32.155 ansible_ssh_user=ansible-ib
+192.168.32.156	ansible_ssh_host=192.168.32.156 ansible_ssh_user=ansible-ib
+192.168.32.157	ansible_ssh_host=192.168.32.157 ansible_ssh_user=ansible-ib
+192.168.32.158	ansible_ssh_host=192.168.32.158 ansible_ssh_user=ansible-ib
+192.168.32.159	ansible_ssh_host=192.168.32.159 ansible_ssh_user=ansible-ib
+192.168.32.160	ansible_ssh_host=192.168.32.160 ansible_ssh_user=ansible-ib
+192.168.32.161	ansible_ssh_host=192.168.32.161 ansible_ssh_user=ansible-ib
+192.168.32.162	ansible_ssh_host=192.168.32.162 ansible_ssh_user=ansible-ib
+192.168.32.163	ansible_ssh_host=192.168.32.163 ansible_ssh_user=ansible-ib
+192.168.32.164	ansible_ssh_host=192.168.32.164 ansible_ssh_user=ansible-ib
+[DrwebBD]
+192.168.32.132	ansible_ssh_host=192.168.32.132 ansible_ssh_user=ansible-ib
+192.168.32.134	ansible_ssh_host=192.168.32.134 ansible_ssh_user=ansible-ib
+192.168.32.131	ansible_ssh_host=192.168.32.131 ansible_ssh_user=ansible-ib
+[DrwebDTC]
+192.168.32.202	ansible_ssh_host=192.168.32.202 ansible_ssh_user=ansible-ib
+192.168.32.205	ansible_ssh_host=192.168.32.205 ansible_ssh_user=ansible-ib
+192.168.32.204	ansible_ssh_host=192.168.32.204 ansible_ssh_user=ansible-ib
+[DrwebSLA]
+192.168.32.199	ansible_ssh_host=192.168.32.199 ansible_ssh_user=ansible-ib
+192.168.32.200	ansible_ssh_host=192.168.32.200 ansible_ssh_user=ansible-ib
+192.168.32.201	ansible_ssh_host=192.168.32.201 ansible_ssh_user=ansible-ib
+192.168.32.203	ansible_ssh_host=192.168.32.203 ansible_ssh_user=ansible-ib
+
+[DrwebOGVT]
+192.168.32.145	ansible_ssh_host=192.168.32.145 ansible_ssh_user=ansible-ib
+[DrwebDTCS]
+192.168.32.202	ansible_ssh_host=192.168.32.202 ansible_ssh_user=ansible-ib
+192.168.32.205	ansible_ssh_host=192.168.32.205 ansible_ssh_user=ansible-ib
+192.168.32.204	ansible_ssh_host=192.168.32.204 ansible_ssh_user=ansible-ib
+
+[DrwebR:children]
+DrwebOGV
+DrwebBD
+DrwebDTC
+DrwebSLA
+
+[DrwebNTP:children]
+DrwebOGV
+DrwebBD
+#DrwebDTC
+DrwebSLA
+
+[DrwebUpd:children]
+DrwebOGV
+DrwebDTC
+

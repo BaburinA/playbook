@@ -1,0 +1,109 @@
+---
+- name: Установка конфигов для zabbix-agent
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    file: /etc/zabbix/zabbix_agent2.conf
+    sziconf: /etc/zabbix/zabbix_agent2.d/szi.conf
+    service: zabbix-agent2
+    server: 192.168.34.101 #сервер который надо добавить в конфиг заббикс-агента важно!!! только один добавляй
+    local_host: false #Убрать 127.0.0.1? если установленно true то убрать
+
+  vars_prompt:
+    - name: input2
+      prompt: "Прописать Server= и ServerActive=? (yes/no)"
+      private: no
+
+    - name: input
+      prompt: "Прописать имя хоста в Hostname=? (yes/no)"
+      private: no
+
+    - name: input3
+      prompt: "Прописать UserParameter=? (yes/no)"
+      private: no
+
+  tasks:
+    - name: Проверка cуществуте ли файл {{file}}
+      stat:
+        path: "{{file}}"
+      register: check1
+
+    - name: Собираю дополнительный факт об имени хоста
+      setup:
+        filter: ansible_hostname
+      become: no
+      when: check1.stat.exists and input | default('no') == 'yes'
+
+    - name: Получение текущиx значений в Server= ServerActive= и Hostname=
+      command: "grep -E '^(Server=|ServerActive=|Hostname=)' {{file}}"
+      register: check_file1
+      when: check1.stat.exists
+
+    - name: Прописывание Server= и ServerActive= в {{file}}
+      lineinfile:
+        path: "{{file}}"
+        regexp: '{{item.regexp}}'
+        line: |
+          {% if item.conf.find(server) == -1 %}
+          {% if '127.0.0.1' in item.conf and local_host %}
+          {% if item.conf.split('127.0.0.1')[1].lstrip(',') == '' %}
+          {{ item.str }}{{item.conf.split('127.0.0.1')[1].lstrip(',') | trim }}{{ server }}
+          {% else %}
+          {{ item.str }}{{item.conf.split('127.0.0.1')[1].lstrip(',') | trim }},{{ server }}
+          {% endif %}
+          {% else %}
+          {{ item.str }}{{item.conf.split('=')[1] | trim }},{{server}}
+          {% endif %}
+          {% elif '127.0.0.1' in item.conf and local_host %}
+          {{ item.str }}{{item.conf.split('127.0.0.1')[1].lstrip(',') | trim }}
+          {% else %}
+          {{item.conf}}
+          {% endif %}
+      loop:
+        - regexp: '^Server=(.*)'
+          str: 'Server='
+          conf: '{{check_file1.stdout_lines[0]}}'
+        - regexp: '^ServerActive=(.*)'
+          str: 'ServerActive='
+          conf: '{{check_file1.stdout_lines[1]}}'
+
+      when: check1.stat.exists and input2 | default('no') == 'yes'
+
+    - name: Прописывание Hostname=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^Hostname=(.*)'
+        line: "Hostname={{ansible_hostname.upper()}}"
+      when: check1.stat.exists and input | default('no') == 'yes'
+
+    - name: Создание файла {{sziconf}} и добавление UserParameter
+      lineinfile:
+        path: "{{sziconf}}"
+        line: "{{item}}"
+        create: true
+        mode: "0644"
+      become: yes
+      loop:
+        - "UserParameter=service_status[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $?"
+        - "UserParameter=service_found[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $?"
+      when: check1.stat.exists and input3 | default('no') == 'yes'
+
+    - name: Рестарт службы {{service}}
+      service:
+        name: "{{service}}"
+        state: restarted
+        enabled: yes
+      when: check1.stat.exists
+
+    - name: Повторное получение текущиx значений в Server= ServerActive= и Hostname=
+      command: "grep -E '^(Server=|ServerActive=|Hostname=)' {{file}}"
+      register: check_file2
+      when: check1.stat.exists
+
+    - debug:
+        msg: "{{[
+          'До '+' '.join(check_file1.stdout_lines),
+          'После '+' '.join(check_file2.stdout_lines)] if check1.stat.exists else 'скипнуто'
+        }}"
+

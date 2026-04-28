@@ -1,0 +1,29 @@
+# Меняем hosts и user
+---
+- hosts: DirUM
+  become: true
+  tasks:
+
+  - name: "Set Key SSH remote machine"
+    ansible.posix.authorized_key:
+      user: ansible-ib
+      state: present
+      key: "{{ lookup('file', '/home/ansible-ib/.ssh/id_rsa.pub') }}"
+
+#  - name: Change source.list OS (Astra 1.7)
+#    ansible.builtin.copy:
+#      src: ./Repos/nunoe/sources.list
+#      dest: /etc/apt/sources.list
+#      remote_src: no
+#      mode: '0644'
+
+#  - name: Run the equivalent of "apt-get update" as a separate step
+#    ansible.builtin.apt:
+#      update_cache: yes
+
+#  - name: Upgrade the OS (apt-get dist-upgrade)
+#    ansible.builtin.apt:
+#      upgrade: dist
+
+#  - name: Set timedate start servis
+# Install Drweb WS next step01

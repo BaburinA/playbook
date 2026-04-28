@@ -1,0 +1,21 @@
+- name: delete
+  hosts: all
+  become: yes
+  vars:
+    ids: vipnet-ids-hs-agent
+
+  tasks:
+
+    - block:
+        - name: delete idshs 1.5.3
+          shell:
+            cmd: 'sudo dpkg -r {{ids}}'
+
+      when: ansible_os_family == "Astra Linux"
+
+    - block:
+        - name: delete idshs 1.5.3
+          shell:
+            cmd: 'sudo rpm -e {{ids}}'
+
+      when: ansible_os_family == "REDOS"

@@ -1,0 +1,35 @@
+- name: Ping hosts
+  hosts: all
+  gather_facts: no
+  become: no
+  vars_prompt:
+    - name: input
+      prompt: "Сохранить файл? (yes/no)"
+      private: no
+  vars:
+    path: /home/sitdikov_tr/ansible/ping2.txt
+  tasks:
+    - name: Ping hosts
+      ansible.builtin.ping:
+      register: ping
+      ignore_unreachable: yes
+      ignore_errors: yes
+
+    - set_fact:
+        ip: "{{ansible_host}}"
+        result: |-
+          {% if ping is unreachable %}
+          {{group_names[0]}} {{ping.msg}}
+          {% elif ping is failed %}
+          {{group_names[0]}} {{ping.module_stdout | regex_replace('\\n|\\r',' ')}}
+          {% endif %}
+
+    - name: Сохранение в {{path}}
+      lineinfile:
+        regexp: "^{{ip}}(.*)"
+        line: "{{ip}} {{ result | regex_replace('\\n','') }}"
+        dest: "{{ path }}"
+        mode: "0757"
+        create: true
+      delegate_to: localhost
+      when: (ping is unreachable or ping is failed) and (input | default('no') == 'yes')

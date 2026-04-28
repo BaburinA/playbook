@@ -1,0 +1,25 @@
+---
+- hosts: TestHosts
+  gather_facts: False
+  tasks:
+    - name: Check Dist Version
+      ansible.builtin.stat: 
+        path: /usr/bin/idshs-agent 
+      register: re
+
+    - name: Value Vers
+      ansible.builtin.debug:
+        with_items: 
+          - {{ re.stat.exists }}
+
+#    - name: File yes
+#      ansible.builtin.debug:
+#        msg: "This is an Ubuntu Server."
+#      when: re.stat.exists==True
+
+
+#        msg: "Whoops!!!"
+#        when: re.stat.exists==False
+#        msg: "Whoops!!!"
+
+#    - debug: msg="{{ response.stdout }}"

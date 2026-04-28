@@ -1,0 +1,25 @@
+---
+- name: Синхронизация файлов и установка SNS Linux
+  hosts: all
+  become: yes
+
+  tasks:
+    # 1. Копируем файлы Secret Net, если ядро поддерживаемое
+    - name: 5. Копируем файлы SNS Linux и лицензию
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/sns-manager-8.0-664.redos7.3.x86_64.rpm
+        dest: /home/ansible-ib/
+        remote_src: no
+
+    # 2. Проверяем, установлен ли пакет sns
+    - name: 6. Проверяем, установлен ли пакет sns
+      ansible.builtin.shell: |
+        rpm -q sns
+      register: sns_package_check
+      ignore_errors: yes
+
+    # 3. Устанавливаем пакет sns-manager, если sns установлен
+    - name: 7. Устанавливаем пакет SNS-manager через dnf, если sns установлен
+      ansible.builtin.command:
+        cmd: dnf install -y /home/ansible-ib/sns-manager-8.0-664.redos7.3.x86_64.rpm
+      when: sns_package_check.rc == 0

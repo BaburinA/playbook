@@ -1,0 +1,10 @@
+[all:vars]
+ansible_user=ansible-ib
+ansible_ssh_private_key_file=/home/cootergin_ds/.ssh/id_rsa
+
+[svm]
+192.168.75.26
+192.168.75.47
+192.168.75.46
+192.168.75.48
+192.168.75.49

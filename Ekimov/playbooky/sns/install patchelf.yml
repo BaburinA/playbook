@@ -1,0 +1,32 @@
+---
+- name: Установка patchelf
+  hosts: all
+  become: yes
+
+  tasks:
+    # 1. Получение фактов о пакетах
+    - name: Получить факты о пакетах
+      ansible.builtin.package_facts:
+
+    # 2. Проверка, установлен ли пакет patchelf
+    - name: Проверить, установлен ли patchelf
+      ansible.builtin.debug:
+        msg: "Пакет patchelf уже установлен"
+      when: "'patchelf' in ansible_facts.packages"  # Если пакет уже установлен
+
+    # 3. Установка patchelf, если он не установлен
+    - name: Установить patchelf
+      ansible.builtin.yum:
+        name: patchelf
+        state: present
+      when: "'patchelf' not in ansible_facts.packages"  # Если пакет не установлен
+      register: result
+      failed_when: result.rc != 0
+
+    # 4. Выполнение команды с patchelf
+    - name: Выполнить команду patchelf
+      ansible.builtin.command:
+        cmd: patchelf --add-needed /lib64/libboost_filesystem.so.1.73.0 /opt/securitycode/sns/lib/libsnldap.so
+      register: command_result
+      failed_when: command_result.rc != 0
+      when: result.rc == 0  # Выполняется только если установка прошла успешно

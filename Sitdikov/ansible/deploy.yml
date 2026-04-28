@@ -1,0 +1,4 @@
+---
+- import_playbook: /home/sitdikov_tr/ansible/drweb/install_drweb.yml
+- import_playbook: /home/sitdikov_tr/ansible/idshs/install_idshs.yml
+- import_playbook: /home/sitdikov_tr/ansible/zabbix/zabbix_qwe.yml

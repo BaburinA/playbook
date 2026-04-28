@@ -1,0 +1,94 @@
+- name: Подключение оркестратору
+  hosts: all
+  become: yes
+  gather_facts: no
+  
+    # - name: Выполнение команды подключения
+    #   expect:
+    #     command: "/opt/securitycode/sns/bin/snconnctl --registration --ip=192.168.131.8"
+    #     responses:
+    #       "логин:": "ekimov_viiu"
+    #       "пароль:": "Impossible322&&"
+    #       "Подключиться к существующему объекту?": "д"  # Ответ на запрос о подключении
+    #   register: registration_result
+    #   ignore_errors: yes
+
+    # - name: Проверка на уже зарегистрированного агента
+    #   debug:
+    #     msg: "Хост уже подключен к оркестратору"
+    #   when: "'Агент уже зарегистрирован' in registration_result.stdout"
+
+    # - name: Подтверждение регистрации (если агент уже зарегистрирован)
+    #   expect:
+    #     command: "sudo /opt/securitycode/sns/bin/snconnctl --registration --ip=192.168.131.8"
+    #     responses:
+    #       "логин:": "ekimov_viiu"
+    #       "пароль:": "Impossible322&&"
+    #       "уже существует на сервере. Подключиться к существующему объекту? [д/Н]": "д"  # Ответ на запрос о подключении
+    #   when: "'Агент уже зарегистрирован' in registration_result.stdout"
+    #   register: registration_confirmation
+    #   ignore_errors: yes
+    
+    # - name: Убедиться, что Python-библиотека pexpect установлена
+    #   ansible.builtin.yum:
+    #     name: python3-pexpect
+    #     state: present
+  vars:
+    sns_rpm_dir: /home/ansible-ib/sns-rpms
+
+    dependency_rpms:
+      - python3-ptyprocess-0.5.2-5.el7.noarch.rpm
+      - python3-pexpect-4.7.0-2.el7.noarch.rpm
+
+  tasks:
+    # Если нет интернета, доработать
+    # - name: Копируем файлы Python3-pexpect
+    #   ansible.builtin.copy:
+    #     src: /home/distribution/szi-for-linux/sns-linux/sns-rpms/python3-ptyprocess-0.5.2-5.el7.noarch.rpm
+    #     dest: /home/ansible-ib/
+    #     remote_src: no
+
+    # - name: Копируем файлы Python3-pexpect
+    #   ansible.builtin.copy:
+    #     src: /home/distribution/szi-for-linux/sns-linux/sns-rpms/python3-pexpect-4.7.0-2.el7.noarch.rpm
+    #     dest: /home/ansible-ib/
+    #     remote_src: no
+
+    - name: Установленна ли библеотека pexpect
+      pip:
+        name: pexpect
+        state: present
+
+    # - name: Установка зависимостей через dnf
+    #   ansible.builtin.command:
+    #     # cmd: dnf install --disablerepo=* --allowerasing -y "{{ sns_rpm_dir }}/{{ item }}"
+    #     cmd: dnf install --allowerasing -y "{{ sns_rpm_dir }}/{{ item }}"
+    #   loop: "{{ dependency_rpms }}"
+    #   args:
+    #     warn: false  
+
+    # - name: Выполнение команды snconnctl -D после подтверждения
+    #   expect:
+    #     command: "sudo /opt/securitycode/sns/bin/snconnctl -D"
+    #     responses:
+    #       "логин:": "kutergin_ds"
+    #       "пароль:": "P@ssword321"
+    #       "Подключиться к существующему объекту?": "y"  # Ответ на запрос о подключении
+    #  # when: "'Объект с именем' in registration_confirmation.stdout"  # Проверяем, что был запрос на подключение
+    #   register: disable_result
+    #   ignore_errors: yes
+
+    - name: Повторное выполнение команды подключения
+      expect:
+        command: "sudo /opt/securitycode/sns/bin/snconnctl --registration --ip=192.168.131.8"
+        responses:
+          "логин:": "kutergin_ds"
+          "пароль:": "DanilKutergin14@44"
+          "Подключиться к существующему объекту?": "y"  # Ответ на запрос о подключении
+      register: final_registration_result
+      ignore_errors: yes
+
+    - name: Вывод результата подключения
+      debug:
+        msg: "{{ final_registration_result.stdout | regex_replace('[\\n\\r]', ' ') | regex_replace('Введите учетные данные администратора безопасности.*?Настройки успешно сохранены', '') | regex_replace('\\+[-\\+]+\\+', '') | regex_replace('\\|', '') | regex_replace('\\s+', ' ') | trim }}"
+      when: "'Агент уже зарегистрирован' not in final_registration_result.stdout"

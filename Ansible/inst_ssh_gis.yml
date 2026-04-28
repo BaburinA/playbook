@@ -1,0 +1,66 @@
+# Установка ключей на ГИСы и прав на sudoers
+---
+- hosts: TestHS
+  become: true
+  tasks:
+
+  - name: Create a directory if it does not exist
+    ansible.builtin.file:
+      path: /home/baburin_ag/.ssh
+      state: directory
+      mode: '0755'
+      owner: baburin_ag
+      group: baburin_ag
+
+  - name: Copy certificate
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/authorized_keys
+      dest: ./.ssh/authorized_keys
+      mode: '0644'
+
+  - name: Copy config
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/config
+      dest: ./.ssh/config
+      mode: '0644'
+
+  - name: Copy id_rsa.pub
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/id_rsa.pub
+      dest: ./.ssh/id_rsa.pub
+      mode: '0644'
+
+  - name: Copy known_hosts
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/known_hosts
+      dest: ./.ssh/known_hosts
+      mode: '0644'
+
+  - name: Copy known_hosts.old
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/known_hosts.old
+      dest: ./.ssh/known_hosts.old
+      mode: '0644'
+
+  - name: Copy rsa-key-06022022.ppk
+    ansible.builtin.copy:
+      src: /home/admin1/orig_ssh/.ssh/rsa-key-06022022.ppk
+      dest: ./.ssh/rsa-key-06022022.ppk
+      mode: '0644'
+
+  - name: Populate service facts
+    ansible.builtin.service_facts:
+
+  - name: Set variables agent
+    set_fact:
+      agent_echo: baburin_ag ALL=(ALL) NOPASSWD:ALL
+
+  - name: Change Sudoer
+    ansible.builtin.shell: echo '{{ agent_echo }}' >>/etc/sudoers
+
+
+
+
+
+
+

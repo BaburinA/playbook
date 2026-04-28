@@ -1,0 +1,120 @@
+---
+- name: Установка Secret Net Linux на RedOS 7.3 без интернета
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    sns_rpm_dir: /home/ansible-ib/sns-rpms
+
+    dependency_rpms:
+      - boost-system-1.73.0-6.el7.x86_64.rpm
+      - boost-chrono-1.73.0-6.el7.x86_64.rpm
+      - boost-filesystem-1.73.0-6.el7.x86_64.rpm
+      - boost-thread-1.73.0-6.el7.x86_64.rpm
+      - boost-atomic-1.73.0-6.el7.x86_64.rpm
+      - boost-date-time-1.73.0-6.el7.x86_64.rpm
+      - libstdc++-11.4.0-1.el7.3.x86_64.rpm
+      - boost-locale-1.73.0-6.el7.x86_64.rpm
+      - boost-regex-1.73.0-5.el7.x86_64.rpm               
+      - boost-log-1.73.0-5.el7.x86_64.rpm                                       
+      - boost-program-options-1.73.0-5.el7.x86_64.rpm             
+      - cyrus-sasl-md5-2.1.27-5.el7.x86_64.rpm
+      - mhash-0.9.9.9-18.el7.x86_64.rpm
+      - pcsc-lite-libs-2.2.3-1.el7.x86_64.rpm
+      - pcsc-lite-devel-2.2.3-1.el7.x86_64.rpm
+      - re2-20190801-5.el7.x86_64.rpm
+      - qt5-qtwebengine-5.15.1-3.el7.3.x86_64.rpm
+      - qt5-qtgraphicaleffects-5.15.1-1.el7.x86_64.rpm
+      - qt5-qtquickcontrols-5.15.1-1.el7.x86_64.rpm
+      - qt5-qtquickcontrols2-5.15.1-1.el7.x86_64.rpm         
+ 
+  tasks:
+
+    - name: Проверяем, установлен ли Secret Net
+      ansible.builtin.shell: systemctl status sn
+      register: secret_net_status
+      failed_when: false
+      changed_when: false
+
+    - name: Выводим результат проверки Secret Net
+      ansible.builtin.debug:
+        msg: "SNS Linux: {{ 'установлен' if secret_net_status.rc == 0 else 'не установлен' }}"
+
+    # - name: Прерываем выполнение плейбука, если Secret Net установлен
+    #   meta: end_play
+    #   when: secret_net_status.rc == 0
+
+    - name: Проверка версии ядра
+      ansible.builtin.shell: uname -a
+      register: kernel_version
+
+    - name: Выводим текущую версию ядра
+      ansible.builtin.debug:
+        msg: "Текущее ядро: {{ kernel_version.stdout }}"
+
+    - name: Копируем файлы SNS Linux и лицензию
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/sns-rpms
+        dest: /home/ansible-ib/
+        remote_src: no
+
+    - name: Установка зависимостей через dnf
+      ansible.builtin.command:
+        cmd: dnf install --disablerepo=* --allowerasing -y "{{ sns_rpm_dir }}/{{ item }}"
+      loop: "{{ dependency_rpms }}"
+      args:
+        warn: false
+
+    - name: Устанавливаем зависимости pcsc
+      ansible.builtin.command:
+        cmd: >
+         dnf install -y
+         /home/ansible-ib/sns-rpms/pcsc-lite-ccid-1.5.5-1.el7.x86_64.rpm
+         /home/ansible-ib/sns-rpms/pcsc-lite-2.2.3-1.el7.x86_64.rpm
+         --disablerepo=*
+
+    - name: Установка SNS
+      ansible.builtin.command:
+        cmd: dnf install --disablerepo=* -y "{{ sns_rpm_dir }}/sns-8.0-1357.redos7.3.x86_64.rpm"
+      #when: secret_net_status.rc != 0 
+
+    - name: Установка SNS Manager
+      ansible.builtin.command:
+        cmd: dnf install --disablerepo=* -y "{{ sns_rpm_dir }}/sns-manager-8.0-664.redos7.3.x86_64.rpm"
+
+    - name: Спрашиваем, перезагружать ли хост
+      ansible.builtin.pause:
+        prompt: "Перезагрузить хост {{ inventory_hostname }}? (yes/no)"
+      register: reboot_answer
+      delegate_to: localhost
+      run_once: false
+
+    - name: 8. Перезагружаем хост, если ответ 'yes'
+      ansible.builtin.reboot:
+      when: reboot_answer.user_input | replace('\r', '') == "yes"
+
+    - name: 9. Сообщаем, что хост требует перезагрузки, если ответ был "no"
+      ansible.builtin.debug:
+        msg: "Пакет SNS Linux установлен на хосте {{ inventory_hostname }}. Требуется перезагрузка."
+      when: reboot_answer.user_input | replace('\r', '') == "no"
+
+    - name: Ждём, пока появится сокет SNS (до 30 секунд)
+      ansible.builtin.wait_for:
+        path: /opt/securitycode/sns/var/tmp/sn_sock
+        state: present
+        timeout: 30
+        delay: 5
+      when: reboot_answer.user_input == "yes" 
+
+    - name: 10. Загружаем лицензию SNS Linux
+      ansible.builtin.shell:
+        cmd: sudo /opt/securitycode/sns/bin/snlicensectl -c "{{ sns_rpm_dir }}/lic124.lic"
+      register: license_result
+      changed_when: true
+      when: reboot_answer.user_input == "yes"
+
+    - name: 10.1. Выводим результат загрузки лицензии
+      ansible.builtin.debug:
+        msg: "{{ license_result.stdout_lines | regex_replace('\\n', ' ') }}"
+      when: reboot_answer.user_input == "yes"

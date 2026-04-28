@@ -1,0 +1,15 @@
+# Перенос на новый сервер Drweb
+---
+- hosts: StroyNadzor
+  become: true
+  tasks:
+
+  - name: Restarting WS Drweb
+    ansible.builtin.shell: systemctl status sn
+    
+
+
+
+
+
+

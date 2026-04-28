@@ -1,0 +1,44 @@
+---
+- name: проверка /dev/null
+  hosts: all
+  become: no
+  gather_facts: no
+  vars:
+    dir: /var/log/idshs/
+  vars_prompt:
+    - name: input
+      prompt: "Установить /dev/null для хостов ? (yes/no)"
+      private: no
+
+  tasks:
+    - name: Проверка существуте ли директория {{dir}}
+      raw: 'ls -d {{dir}}'
+      register: check
+
+    - name: Проверка /dev/null в {{dir}}
+      raw: 'ls -l {{dir}}snort_out.log'
+      register: var
+      failed_when: false
+
+    - name: Остановка служб watcher и agent и установка ссылки на snort_out.log
+      raw: |
+        systemctl stop vipnet-ids-hs-watcher
+        systemctl stop vipnet-ids-hs-agent
+        rm -f /var/log/idshs/snort_out.log*
+        ln -s /dev/null /var/log/idshs/snort_out.log
+        systemctl start vipnet-ids-hs-watcher
+      become: yes
+      when: (var.stdout.find('/dev/null') == -1) and (input | default('no') == 'yes')
+
+    - name: Повторная проверка /dev/null в {{dir}}
+      raw: 'ls -l {{dir}}snort_out.log'
+      register: var2
+      failed_when: false
+
+    - debug:
+        msg: "{{[
+          var.stdout if var.stdout.find('/dev/null') != -1 else 'нету /dev/null',
+          var2.stdout if var2.stdout.find('/dev/null') != -1 else 'нету /dev/null'
+        ]}}"
+
+

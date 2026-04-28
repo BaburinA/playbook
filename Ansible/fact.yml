@@ -1,0 +1,26 @@
+# Меняем hosts и user
+---
+- hosts: TestHosts
+  become: true
+  tasks:
+
+#    - name: Show facts available on the system
+#      ansible.builtin.debug:
+#        var: ansible_facts
+
+    - name: Shut down Debian flavored systems
+      ansible.builtin.debug:
+        msg: OS RedHat {{ ansible_facts.pkg_mgr }}
+      when: ansible_facts.os_family == "RedHat"
+
+    - name: Shut down Debian flavored systems
+      ansible.builtin.debug:
+        msg: OS Debian {{ ansible_facts.pkg_mgr }}
+      when: ansible_facts.os_family == "Debian"
+
+    - name: Shut down Debian flavored systems
+      ansible.builtin.debug:
+        msg: OS Astra Linux {{ ansible_facts.pkg_mgr }}
+      when: ansible_facts.os_family == "Astra Linux"
+
+# pkg_mgr

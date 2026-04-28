@@ -1,0 +1,90 @@
+---
+- name: Установка Kaspersky, если нужная версия не установлена
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    way: /home/distribution/szi-for-linux/KESL/
+    way3: /home/distribution/szi-for-linux/KESLASTRA/
+    target_version: "15.4.0-8873"
+    files:
+      klnagent_rpm: klnagent64-15.4.0-8873.x86_64.rpm
+      klnagent_dpkg: klnagent64_15.4.0-8873_amd64.deb
+
+  tasks:
+    - name: Проверка наличия dpkg
+      stat:
+        path: /usr/bin/dpkg
+      register: dpkg_check
+
+    - name: Определение пакетного менеджера
+      set_fact:
+        pkg_manager: "{{ 'dpkg' if dpkg_check.stat.exists else 'rpm' }}"
+
+    - name: Определение имени пакета и исходного пути
+      set_fact:
+        package_name: "{{ files.klnagent_dpkg if pkg_manager == 'dpkg' else files.klnagent_rpm }}"
+        source_path: "{{ way3 if pkg_manager == 'dpkg' else way }}"
+        dest_full_path: "/home/{{ ansible_user }}/{{ package_name }}"
+
+    # --- Проверка текущей установленной версии ---
+    - name: Получить текущую версию klnagent (rpm)
+      shell: rpm -q klnagent --queryformat '%{VERSION}-%{RELEASE}'
+      register: current_ver_rpm
+      when: pkg_manager == 'rpm'
+      ignore_errors: yes
+
+    - name: Получить текущую версию klnagent (dpkg)
+      shell: dpkg-query -W -f='${Version}' klnagent
+      register: current_ver_dpkg
+      when: pkg_manager == 'dpkg'
+      ignore_errors: yes
+
+    - name: Установить факт текущей версии
+      set_fact:
+        current_version: >-
+          {{
+            (pkg_manager == 'rpm' and current_ver_rpm.rc == 0 and current_ver_rpm.stdout) or
+            (pkg_manager == 'dpkg' and current_ver_dpkg.rc == 0 and current_ver_dpkg.stdout) or
+            ''
+          }}
+
+    # --- Решение: устанавливать или нет? ---
+    - name: Проверка — нужная версия уже установлена?
+      set_fact:
+        install_needed: "{{ current_version != target_version }}"
+
+    - name: Информация — статус установки
+      debug:
+        msg: |
+          Текущая версия klnagent: {{ current_version | default('НЕ УСТАНОВЛЕН') }}
+          Целевая версия: {{ target_version }}
+          Установка требуется: {{ install_needed }}
+
+    # --- Пропуск, если не нужно ---
+    - name: Пропуск установки — нужная версия уже установлена
+      meta: end_play
+      when: not install_needed
+
+    # --- Копирование пакета напрямую в домашний каталог ---
+    - name: Скопировать пакет в домашний каталог пользователя
+      copy:
+        src: "{{ source_path }}{{ package_name }}"
+        dest: "/home/{{ ansible_user }}/{{ package_name }}"
+        mode: '0644'
+
+    # --- Установка ---
+    - name: Установить Kaspersky (RPM)
+      yum:
+        name: "/home/{{ ansible_user }}/{{ package_name }}"
+        state: present
+      when: pkg_manager == 'rpm'
+
+    - name: Установить Kaspersky (DEB)
+      apt:
+        deb: "/home/{{ ansible_user }}/{{ package_name }}"
+      when: pkg_manager == 'dpkg'
+
+    - name: Подтверждение успешной установки
+      debug:
+        msg: "Kaspersky klnagent версии {{ target_version }} успешно установлен."

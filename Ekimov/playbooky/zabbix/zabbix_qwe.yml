@@ -1,0 +1,134 @@
+---
+- name: Установка конфигов для zabbix-agent
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    file: /etc/zabbix/zabbix_agent2.conf
+    sziconf: /etc/zabbix/zabbix_agent2.d/szi.conf
+    service: zabbix-agent2
+    ip: 192.168.34.101
+    ip_del: 127.0.0.1
+    input1: yes # Прописать сервер в Server=
+    input2: yes # Прописать сервер в ServerActive=
+    input3: yes # Прописать имя компа в Hostname=
+    input4: yes # Прописать UserParameter
+    input5: yes # Удалить ip_del из Server=
+    input6: yes # Удалить ip_del из ServerActive=
+
+  tasks:
+    - name: Получение текущиx значений Server= ServerActive= и Hostname=
+      shell: "grep -E '^(Server=|ServerActive=|Hostname=)' {{file}}"
+      register: check_file1
+      when: input1 or input2 or input3
+
+    - name: Прописывание {{ip}} В Server=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^Server=(.*)'
+        line: |
+          {% if ip not in check_file1.stdout_lines[0] %}
+          {% if check_file1.stdout_lines[0][-1] == '=' %}
+          {{check_file1.stdout_lines[0]}}{{ip}}
+          {% else %}
+          {{check_file1.stdout_lines[0]}},{{ip}}
+          {% endif %}
+          {% else %}
+          {{check_file1.stdout_lines[0]}}
+          {% endif %}
+      when: input1
+
+    - name: Прописывание {{ip}} В ServerActive=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^ServerActive=(.*)'
+        line: |
+          {% if ip not in check_file1.stdout_lines[1] %}
+          {% if check_file1.stdout_lines[1][-1] == '=' %}
+          {{check_file1.stdout_lines[1]}}{{ip}}
+          {% else %}
+          {{check_file1.stdout_lines[1]}},{{ip}}
+          {% endif %}
+          {% else %}
+          {{check_file1.stdout_lines[1]}}
+          {% endif %}
+      when: input2
+
+    - name: Получение Server= ServerActive=
+      shell: "grep -E '^(Server=|ServerActive=)' {{file}}"
+      register: check_file3
+      when: input5 or input6
+
+    - name: Удаление {{ip_del}} из Server=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^Server=(.*)'
+        line: |
+          {% if ip_del+',' in check_file3.stdout_lines[0] %}
+          {{ check_file3.stdout_lines[0].replace(ip_del+',','') }}
+          {% elif ','+ip_del in check_file3.stdout_lines[0] %}
+          {{ check_file3.stdout_lines[0].replace(','+ip_del,'') }}
+          {% elif ip_del in check_file3.stdout_lines[0] %}
+          {{ check_file3.stdout_lines[0].replace(ip_del,'') }}
+          {% else %}
+          {{ check_file3.stdout_lines[0] }}
+          {% endif %}
+      when: input5
+
+    - name: Удаление {{ip_del}} из ServerActive=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^ServerActive=(.*)'
+        line: |
+          {% if ip_del+',' in check_file3.stdout_lines[1] %}
+          {{ check_file3.stdout_lines[1].replace(ip_del+',','') }}
+          {% elif ','+ip_del in check_file3.stdout_lines[1] %}
+          {{ check_file3.stdout_lines[1].replace(','+ip_del,'') }}
+          {% elif ip_del in check_file3.stdout_lines[1] %}
+          {{ check_file3.stdout_lines[1].replace(ip_del,'') }}
+          {% else %}
+          {{ check_file3.stdout_lines[1] }}
+          {% endif %}
+      when: input6
+
+    - name: Собираю дополнительный факт об имени хоста
+      setup:
+        filter: ansible_hostname
+      become: no
+      when: input3
+
+    - name: Прописывание Hostname=
+      lineinfile:
+        path: "{{file}}"
+        regexp: '^Hostname=(.*)'
+        line: "Hostname={{ansible_hostname.upper()}}"
+      when: input3
+
+    - name: Создание файла {{sziconf}} и добавление UserParameter
+      lineinfile:
+        path: "{{sziconf}}"
+        line: "{{item}}"
+        create: true
+        mode: "0644"
+      become: yes
+      loop:
+        - "UserParameter=service_status[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $?"
+        - "UserParameter=service_found[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q running;echo $?"
+      when: input4
+
+    - name: Рестарт службы {{service}}
+      service:
+        name: "{{service}}"
+        state: restarted
+        enabled: yes
+      when: input1 or input2 or input3 or input4 or input5 or input6
+
+    - name: Повторное получение текущиx значений в Server= ServerActive= и Hostname=
+      shell: "grep -E '^(Server=|ServerActive=|Hostname=)' {{file}}"
+      register: check_file2
+
+    - debug:
+        msg: "{{[
+          'До    '+' '.join(check_file1.stdout_lines | default('')),
+          'После '+' '.join(check_file2.stdout_lines | default(''))
+        ]}}"

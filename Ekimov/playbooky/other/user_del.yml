@@ -1,0 +1,15 @@
+- name: Удаление пользователя ekimov_vi и его домашней папки
+  hosts: all
+  become: yes
+  tasks:
+    - name: Удаление пользователя ekimov_vi
+      ansible.builtin.user:
+        name: ekimov_vi
+        state: absent
+        remove: yes  # Удаляет домашнюю папку пользователя
+
+    - name: Удаление домашней папки ekimov_vi, если она не была удалена
+      ansible.builtin.file:
+        path: "/home/ekimov_vi"
+        state: absent
+      when: ansible_facts.users is not defined or 'ekimov_vi' not in ansible_facts.users

@@ -1,0 +1,57 @@
+- name: Установка Drweb
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    way: /home/distribution/szi-for-linux/drweb/
+    packages:
+      work: drweb-workstations_11.1.4-2307031224+fstek-4ud~linux_amd64.run
+      file: drweb-file-servers_11.1.4-2307031224+fstek-4ud~linux_amd64.run
+    cert: certificate_e0a9c070-56a3-11e9-7191-8444d45ee50b.pem
+    ip: '91.230.91.5:2193'
+    pack: "{{packages[input] | default('')}}"
+
+  vars_prompt:
+    - name: input
+      prompt: "Какой пакет установить? workstations / file-servers (work/file)"
+      private: no
+
+  tasks:
+    - name: Ошибка
+      fail:
+        msg: "Нужно выбрать пакет"
+      when: input not in ['work','file']
+
+    - name: Проверка установлен ли drweb-agent
+      command: "drweb-ctl -v"
+      register: check
+      ignore_errors: yes
+
+    - debug:
+        msg: "{{check.stdout_lines}}"
+
+    - name: Копирование {{pack}}
+      copy:
+        src: "{{way}}{{pack}}"
+        dest: "/home/{{ansible_user}}/"
+      become: no
+      when: check is failed
+
+    - name: Копирование {{cert}}
+      copy:
+        src: "{{way}}{{cert}}"
+        dest: "/home/{{ansible_user}}/"
+      become: no
+      when: check is failed
+
+    - name: Установка {{pack}}
+      command: "sh /home/{{ansible_user}}/{{pack}} -- -n"
+      when: check is failed
+
+    - name: Подключение к серверу {{ip}}
+      command: "drweb-ctl esc {{ip}} --Certificate /home/{{ansible_user}}/{{cert}}"
+      register: id_agent
+      when: check is failed
+
+    - debug:
+        msg: "{{id_agent.stderr_lines if id_agent is failed else id_agent.stdout_lines | default('')}}"

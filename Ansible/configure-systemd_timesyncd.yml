@@ -1,0 +1,10 @@
+---
+- hosts: DrwebR
+  roles:
+    - role: timesyncd
+        timesyncd__deploy_state: 'present'
+        timesyncd__configuration:
+        - name: 'NTP'
+            value:
+              - '192.168.32.129'
+

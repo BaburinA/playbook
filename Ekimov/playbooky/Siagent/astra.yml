@@ -1,0 +1,27 @@
+- name: Инвентаризация СЗИ на хостах
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Проверка si.agent - чтение версии из файла
+      shell: cat /var/siagent/si.version
+      register: ver05
+      ignore_errors: yes
+      failed_when: false
+
+    - name: Определяем версию siagent
+      shell: |
+        ver="{{ ver05.stdout }}"
+        if echo "$ver" | grep -q "\.rpm"; then
+          echo "$ver"
+        elif echo "$ver" | grep -q "\.deb"; then
+          dpkg-query -W -f='${Package}_${Version}_${Architecture}.deb\n' siagent 2>/dev/null || echo "deb-пакет siagent не найден"
+        else
+          rpm -qa | grep siagent || echo "Пакет siagent не найден"
+        fi
+      register: ver_final
+
+    - name: Вывод результата
+      debug:
+        msg: "{{ ver_final.stdout_lines }}"

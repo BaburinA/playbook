@@ -1,0 +1,25 @@
+- name: Установка сертификата Drweb
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    way: /home/distribution/szi-for-linux/drweb/
+    cert: certificate_e0a9c070-56a3-11e9-7191-8444d45ee50b.pem
+    ip: '91.230.91.5:2193'
+
+  tasks:
+
+    - name: copy {{cert}}
+      copy:
+        src: "{{way}}{{cert}}"
+        dest: /home/ansible-ib/
+
+    - name: connect to server
+      shell: "drweb-ctl esc {{ip}} --Certificate /home/ansible-ib/{{cert}}"
+      register: id_agent
+
+    - debug:
+        msg: "{{id_agent.stdout_lines | default('')}}"
+
+

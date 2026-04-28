@@ -1,0 +1,71 @@
+---
+- name: Проверка наличия lightagent, kesl и drweb-configd на Astra/RedOS
+  hosts: all
+  gather_facts: yes
+  become: yes
+  serial: 1
+
+  ignore_unreachable: true
+
+  vars:
+    result_file: "antivirus_report.txt"  # Файл будет создан на контроллере Ansible
+    kesl_pack: "lightagent"
+    light_pack: "kesl"
+    drweb_pack: "drweb-configd"  # ✅ Правильное имя пакета в Astra/RedOS
+
+  tasks:
+    - name: Определение ОС
+      debug:
+        msg: "ОС: {{ ansible_os_family }}, Дистрибутив: {{ ansible_distribution }}"
+      ignore_errors: yes
+
+    # === Dr.Web: RPM системы (CentOS, RHEL) ===
+    - name: Определение установленных пакетов drweb (rpm)
+      shell: rpm -qa | grep "{{ drweb_pack }}"
+      register: installed_packages_drweb
+      when: ansible_distribution == "CentOS" or ansible_distribution == "REDOS"
+      ignore_errors: yes
+
+    # === Dr.Web: Debian системы (Astra, RedOS) ===
+    - name: Проверить, существует ли папка /opt/drweb
+      stat:
+        path: /opt/drweb.com
+      register: folder_result_drweb
+      ignore_errors: yes
+      when: ansible_distribution == "Debian" or ansible_distribution == "Astra Linux (Smolensk)" or ansible_distribution == "Astra Linux"
+
+    # === Kaspersky: RPM системы (CentOS, RHEL) ===
+    - name: Установлен ли пакет kaspersky
+      shell: rpm -qa | grep {{ kesl_pack }}
+      register: installed_packages_kaspersky
+      ignore_errors: yes
+      when: ansible_distribution == "CentOS" or ansible_distribution == "REDOS"
+
+    # === Kaspersky: Debian системы (Astra, RedOS) ===
+    - name: Установлен ли пакет kaspersky (dpkg)
+      stat:
+        path: /opt/kaspersky
+      register: folder_result_kasper
+      ignore_errors: yes
+      when: ansible_distribution == "Debian" or ansible_distribution == "Astra Linux (Smolensk)" or ansible_distribution == "Astra Linux"
+
+    - name: Сформировать отчет о наличии антивирусов
+      set_fact:
+        report: |
+          Хост: {{ ansible_host }}
+          ОС: {{ ansible_distribution }}
+          Dr.Web: {% if (installed_packages_drweb is defined and 'stdout' in installed_packages_drweb and installed_packages_drweb.stdout != "") or (folder_result_drweb is defined and 'stat' in folder_result_drweb and folder_result_drweb.stat.exists) %}Да{% else %}Нет{% endif %}
+          
+          Kaspersky: {% if (installed_packages_kaspersky is defined and 'stdout' in installed_packages_kaspersky and installed_packages_kaspersky.stdout != "") or (folder_result_kasper is defined and 'stat' in folder_result_kasper and folder_result_kasper.stat.exists) %}Да{% else %}Нет{% endif %}
+      ignore_errors: yes
+
+    - name: Записать отчет в файл (локально на контроллере Ansible)
+      lineinfile:
+        path: "{{ result_file }}"
+        line: "{{ item }}"
+        create: yes
+      delegate_to: localhost  # Выполняем задачу локально
+      loop:
+        - "========================================="
+        - "{{ report }}"
+      ignore_errors: yes

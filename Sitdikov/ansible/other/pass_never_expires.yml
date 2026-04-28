@@ -1,0 +1,35 @@
+---
+
+- name: pass_never_expires
+  hosts: us
+  gather_facts: false
+  become: true
+  vars:
+    user: 'ansible-ib'
+    expires: -1
+
+  tasks:
+
+    - name: дата окончания срока действия УЗ пользователя {{user}}
+      command: chage -l {{user}}
+      register: result
+
+    - name: Установить срок дейсвия пароля {{expires}} для {{user}}
+      command: chage -M {{expires}} {{user}}
+      register: output
+
+    - name: дата окончания срока действия УЗ пользователя {{user}}
+      command: chage -l {{user}}
+      register: result2
+
+    - name: set_fact
+      set_fact:
+        output_massage:
+          - "До выполнения chage -M: {{result.stdout_lines[1]}}"
+          - "До выполнениня chage -M: {{result.stdout_lines[5]}}"
+          - "Текущее значение: {{result2.stdout_lines[1]}}"
+          - "Текущее значение: {{result2.stdout_lines[5]}}"
+
+    - name: Вывод результат
+      debug:
+        msg: "{{output_massage}}"

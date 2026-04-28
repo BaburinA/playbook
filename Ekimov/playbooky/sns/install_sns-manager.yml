@@ -1,0 +1,20 @@
+---
+- name: Синхронизация файлов и установка SNS Linux
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: 1. Копируем sns-manager
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/sns-rpms/sns-manager-8.0-664.redos7.3.x86_64.rpm
+        dest: /home/ansible-ib/
+        remote_src: no
+
+    - name: 2. Устанавливаем sns-manager 
+      ansible.builtin.dnf:
+        name: /home/ansible-ib/sns-manager-8.0-664.redos7.3.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+
+

@@ -1,0 +1,133 @@
+[all:vars]
+ansible_user=ansible-ib
+ansible_ssh_private_key_file=/home/cootergin_ds/.ssh/id_rsa
+
+[us]
+#ус
+192.168.70.3
+192.168.70.4
+192.168.70.5
+192.168.70.6
+192.168.70.11
+192.168.70.12
+192.168.70.13
+192.168.70.14
+192.168.70.15
+192.168.70.16
+[uszi]
+#усзи
+192.168.70.130
+192.168.70.131
+192.168.70.132
+192.168.70.133
+192.168.70.134
+192.168.70.135
+192.168.70.136
+192.168.70.140
+192.168.70.137
+
+[sa]
+#отдел системного администрирования
+192.168.70.66
+192.168.70.67
+192.168.70.68
+192.168.70.70
+#192.168.70.72 windows
+192.168.70.73
+192.168.70.69
+192.168.70.112
+192.168.70.80
+[uib]
+#уиб
+192.168.70.162
+192.168.70.163
+192.168.70.164
+192.168.70.165
+192.168.70.166
+[vks]
+#тсвкс
+192.168.72.60
+192.168.72.61
+192.168.72.62
+192.168.72.63
+[buh]
+#бухгалтерия
+192.168.72.41
+192.168.72.42
+[kdr]
+#кадры
+192.168.72.30
+192.168.72.31
+192.168.72.32
+192.168.72.33
+[vdido]
+#вдидо
+192.168.72.50
+192.168.72.51
+[boss]
+#руководство
+192.168.70.138
+192.168.72.20
+192.168.72.21
+192.168.72.23
+192.168.72.22
+192.168.70.139
+192.168.72.24
+RIC-PC-41 ansible_host=100.127.8.10
+[kpis]
+#кпис
+RIC-PC-094 ansible_host=100.127.8.37
+RIC-PC-095 ansible_host=100.127.8.34
+RIC-PC-096 ansible_host=100.127.8.32
+RIC-PC-098 ansible_host=100.127.8.36
+RIC-PC-099 ansible_host=100.127.8.35
+RIC-PC-207 ansible_host=100.127.8.31
+[pis]
+#пис
+#RIC-PC-6   ansible_host=100.127.8.12
+#RIC-PC-45  ansible_host=100.127.8.18
+RIC-PC-63  ansible_host=100.127.8.13
+RIC-PC-120 ansible_host=100.127.8.16
+RIC-PC-121 ansible_host=100.127.9.137
+RIC-PC-122 ansible_host=100.127.8.23
+RIC-PC-123 ansible_host=100.127.8.22
+RIC-PC-124 ansible_host=100.127.8.19
+RIC-PC-125 ansible_host=100.127.9.194
+RIC-PC-126 ansible_host=100.127.8.21
+RIC-PC-172 ansible_host=100.127.8.11
+RIC-PC-174 ansible_host=100.127.8.17
+100.127.8.19
+[ogv]
+#админы огв
+RIC-PC-117 ansible_host=100.127.8.67
+RIC-PC-118 ansible_host=100.127.8.68
+RIC-PC-119 ansible_host=100.127.8.69
+RIC-PC-132 ansible_host=100.127.8.70
+RIC-PC-133 ansible_host=100.127.8.66
+RIC-PC-142 ansible_host=100.127.8.85
+RIC-PC-157 ansible_host=100.127.8.64
+RIC-PC-194 ansible_host=100.127.9.71
+[sos]
+#СОС
+RIC-PC-082 ansible_host=100.127.8.42
+RIC-PC-083 ansible_host=100.127.8.45
+RIC-PC-084 ansible_host=100.127.8.43
+RIC-PC-085 ansible_host=100.127.8.46
+RIC-PC-081 ansible_host=100.127.8.48
+RIC-PC-088 ansible_host=100.127.8.49 
+#RIC-PC-12  ansible_host=100.127.8.112
+RIC-PC-65  ansible_host=100.127.8.47
+RIC-PC-136 ansible_host=100.127.8.44
+RIC-PC-139 ansible_host=100.127.8.51
+[psufed]
+#псуфэд
+RIC-PC-152 ansible_host=100.127.8.57
+RIC-PC-165 ansible_host=100.127.8.58
+RIC-PC-167 ansible_host=100.127.8.59
+RIC-PC-164 ansible_host=100.127.8.55
+RIC-PC-280 ansible_host=100.127.8.59
+RIC-PC-281 ansible_host=100.127.8.56
+RIC-PC-168 ansible_host=100.127.8.60
+
+
+

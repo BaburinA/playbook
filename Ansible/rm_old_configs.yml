@@ -1,0 +1,27 @@
+# Reconnect & rm configs & Перенос на новый сервер Drweb
+---
+- hosts: MinObr
+  become: true
+  tasks:
+
+  - name: Stop WS Drweb
+    ansible.builtin.shell: systemctl stop drweb-configd
+
+  - name: Rm old configs
+    ansible.builtin.shell: rm -f /var/opt/drweb.com/lib/esagent/store /var/opt/drweb.com/lib/es_store.cfg
+
+  - name: Stop WS Drweb
+    ansible.builtin.shell: systemctl start drweb-configd
+
+  - name: Connect new  server Drweb
+    ansible.builtin.shell: drweb-ctl esc avfstek.udmr.ru:2193 --Certificate ./cer.pem
+#    ansible.builtin.shell: drweb-ctl esconnect 192.168.32.202 --Certificate ./cer.pem
+
+#  - name: Result connect server
+#    ansible.builtin.shell: drweb-ctl app
+
+#      state: restarted
+
+
+
+

@@ -1,0 +1,71 @@
+- name: Запросить выбор сервера подключения (один раз)
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Запросить выбор сервера для подключения
+      pause:
+        prompt: |
+          Выберите сервер для подключения:
+          1) Армы администраторов ЦОД
+          2) Подрядчики
+          3) Буферные машины
+          4) Армы обычных пользователей
+          Введите номер (1-4)
+      register: server_choice
+
+    - name: Сохранить выбор сервера
+      set_fact:
+        server_input: "{{ server_choice.user_input }}"
+
+
+- name: Подключение агентов к серверу безопасности СНС
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    login: "snsadmin"
+    password: "201LbvYjcRkf"
+    servers:
+      - { name: "Армы администраторов ЦОД", ip: "192.168.131.3" }
+      - { name: "Подрядчики", ip: "192.168.131.6" }
+      - { name: "Буферные машины", ip: "192.168.131.10" }
+      - { name: "Армы обычных пользователей", ip: "192.168.131.4" }
+
+  tasks:
+    
+    # - name: Убедиться, что Python-библиотека pexpect установлена
+    #   ansible.builtin.yum:
+    #     name: python3-pexpect
+    #     state: present
+
+    - name: Проверка состояния подключения
+      command: "/opt/securitycode/sns/bin/snnetctl -s"
+      register: snnetctl_status
+      ignore_errors: yes
+
+    - name: Проверка, подключена ли станция
+      debug:
+        msg: "{{ snnetctl_status.stdout | regex_replace('Обновление настроек каждые 60 минут', '') | regex_replace('\n', ' ') }}"
+      when: "'Удаленное управление подключено' in snnetctl_status.stdout"
+
+    # - name: Завершить выполнение, если станция уже подключена
+    #   meta: end_play
+    #   when: "'Удаленное управление подключено' in snnetctl_status.stdout"
+
+    - name: Проверка корректности выбора сервера
+      fail:
+        msg: "Неверный выбор, выберите номер от 1 до 4."
+      when: hostvars['localhost']['server_input'] not in ['1', '2', '3', '4']
+
+    - name: Подключение к серверу с использованием команды snnetctl
+      expect:
+        command: "/opt/securitycode/sns/bin/snnetctl -e -u {{ login }} -c {{ servers[hostvars['localhost']['server_input'] | int - 1].ip }}"
+        responses:
+          "Пароль пользователя 'snsadmin':": "{{ password }}"
+        timeout: 60
+      register: snnetctl_output
+      ignore_errors: yes
+
+    - name: Вывод результатов подключения
+      debug:
+        msg: "Сервер подключения '{{ servers[hostvars['localhost']['server_input'] | int - 1].name }}': {{ snnetctl_output.stdout | regex_replace(\"Пароль пользователя 'snsadmin'\", '') | regex_replace('[\r\n]', ' ') | regex_replace('.*(Удаленное управление подключено)', '\\1') }}"

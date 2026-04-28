@@ -1,0 +1,35 @@
+---
+- hosts: Drweb-All
+  become: true
+  vars_files:
+    - xueta
+  tasks:
+
+    - name: print to file
+      ansible.builtin.copy:
+        content: "ip address,Name OS"
+        dest: ./os_drweb.csv
+      delegate_to: localhost
+
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Check Dist ALL AVP
+      set_fact:
+        res_agent: "{{ ansible_facts['os_family'] }}"
+
+    - name: Check Dist ALL AVP
+      set_fact:
+        res_agent: "No access OS"
+        when: res_agent is not defined
+
+
+#    - debug:
+#       var: ansible_facts['os_family']
+
+    - name: print to file
+      ansible.builtin.lineinfile:
+        path: ./os_drweb.csv
+        line: "{{ inventory_hostname }},{{ res_agent }}"
+#        line: "{{ ansible_facts }}"
+      delegate_to: localhost

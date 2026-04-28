@@ -1,0 +1,93 @@
+[all:vars]
+ansible_user=ansible-ib
+ansible_ssh_private_key_file=/home/sitdikov_tr/.ssh/id_rsa
+
+[svm:vars]
+ansible_python_interpreter=/usr/bin/python
+[svm]
+svm-132		     ansible_host=192.168.75.132
+svm-131		     ansible_host=192.168.75.131
+svm-133		     ansible_host=192.168.75.133
+svm-23		     ansible_host=192.168.75.23
+svm-130		     ansible_host=192.168.75.130
+svm-21		     ansible_host=192.168.75.21
+svm-19		     ansible_host=192.168.75.19
+ksc-p24-svm-75-25    ansible_host=192.168.75.25
+ksc-p24-svm-75-26    ansible_host=192.168.75.26
+ksc-p24-svm-75-27    ansible_host=192.168.75.27
+ksc-p24-svm-75-28    ansible_host=192.168.75.28
+ksc-p24-svm-75-29    ansible_host=192.168.75.29
+ksc-p24-svm-75-30    ansible_host=192.168.75.30
+ksc-p24-svm-75-31    ansible_host=192.168.75.31
+ksc-p24-svm-75-32    ansible_host=192.168.75.32
+svm-10		     ansible_host=192.168.75.10
+ksc-p24-svm-75-41    ansible_host=192.168.75.41
+ksc-p24-svm-75-42    ansible_host=192.168.75.42
+ksc-p24-svm-75-43    ansible_host=192.168.75.43
+ksc-p24-svm-75-44    ansible_host=192.168.75.44
+ksc-p24-svm-75-40    ansible_host=192.168.75.40
+svm-123		     ansible_host=192.168.75.123
+svm-120		     ansible_host=192.168.75.120
+svm-126		     ansible_host=192.168.75.126
+svm-121		     ansible_host=192.168.75.121
+svm-124		     ansible_host=192.168.75.124
+svm-122		     ansible_host=192.168.75.122	 
+ksc-p24-svm-75-119   ansible_host=192.168.75.119
+ksc-p24-svm-75-118   ansible_host=192.168.75.118
+ksc-p24-svm-75-117   ansible_host=192.168.75.117
+ksc-p24-svm-75-116   ansible_host=192.168.75.116
+ksc-p24-svm-75-115   ansible_host=192.168.75.115
+ksc-p24-svm-75-114   ansible_host=192.168.75.114
+ksc-p24-svm-75-113   ansible_host=192.168.75.113
+ksc-p24-svm-75-112   ansible_host=192.168.75.112
+svm-87		     ansible_host=192.168.75.87
+svm-84		     ansible_host=192.168.75.84
+ksc-p24-svm-75-93    ansible_host=192.168.75.93
+ksc-p24-svm-75-162   ansible_host=192.168.75.162
+svm-149		     ansible_host=192.168.75.149
+svm-150	             ansible_host=192.168.75.150
+ksc-p24-svm-75-35    ansible_host=192.168.75.35
+ksc-p24-svm-75-36    ansible_host=192.168.75.36
+ksc-p24-svm-75-37    ansible_host=192.168.75.37
+ksc-p24-svm-75-65    ansible_host=192.168.75.65
+ksc-p24-svm-75-67    ansible_host=192.168.75.67
+ksc-p24-svm-75-66    ansible_host=192.168.75.66
+ksc-p24-svm-75-68    ansible_host=192.168.75.68
+ksc-p24-svm-75-69    ansible_host=192.168.75.69
+svm-70		     ansible_host=192.168.75.70
+svm-71		     ansible_host=192.168.75.71
+svm-72		     ansible_host=192.168.75.72
+svm-73		     ansible_host=192.168.75.73
+svm-74		     ansible_host=192.168.75.74
+
+[sns]
+192.168.131.8
+
+[zabbix]
+192.168.34.103
+192.168.34.102
+192.168.34.101
+192.168.34.99
+
+[DrwebOGV]
+192.168.32.[145:164]
+[DrwebBD]
+192.168.32.132
+192.168.32.134
+192.168.32.131
+[DrwebDTC]
+192.168.32.202
+192.168.32.205
+192.168.32.204
+[DrwebSLA]
+192.168.255.200
+192.168.32.199
+192.168.32.200
+#192.168.32.201
+192.168.32.203
+
+[drweb:children]
+DrwebOGV
+DrwebBD
+DrwebDTC
+DrwebSLA

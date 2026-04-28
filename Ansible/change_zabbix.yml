@@ -1,0 +1,26 @@
+---
+- hosts: GisArea
+  gather_facts: False
+  become: true
+  tasks:
+
+#    - name: change config zabbix-agent
+#      ansible.builtin.shell: echo "UserParameter=service_found[*],systemctl status $1 2> /dev/null |sed -n 3p |grep -q 'running';echo $?" >>/etc/zabbix/zabbix_agent.conf
+
+#    - name: change config zabbix-agent
+#      ansible.builtin.shell: sed -i 's|status  2>|status $1 2>|' /etc/zabbix/zabbix_agent.conf
+
+#    - name: change config zabbix-agent
+#      ansible.builtin.shell: sed -i 's|;echo 0|;echo $?|' /etc/zabbix/zabbix_agent.conf
+
+#    - name: change config zabbix-agent
+#      ansible.builtin.shell: sed -i 's|service_status [|service_status[|' /etc/zabbix/zabbix_agent.conf
+
+
+    - name: change config zabbix-agent
+      ansible.builtin.shell: sed -i "s|'running'|'active'|" /etc/zabbix/zabbix_agent.conf
+
+
+    - name: Restart service zabbix-agent
+      ansible.builtin.shell: systemctl restart zabbix-agent
+

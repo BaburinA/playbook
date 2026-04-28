@@ -1,0 +1,22 @@
+---
+- name: change_password_hash
+  hosts: all
+  gather_facts: false
+  vars:
+    user: "ansible-ib"
+    pwd: "$6$rounds=120000$qW36i0.GCVPhsWYt$D4chyzy2hcABRF7wJDiO/5UUsY7znlPB.vuh5JhL.CbO4oAng30rlyGzkBBaNxvoeo71t4lQvS4jzv59Hgprn0"
+    key: "{{lookup('file','/home/sitdikov_tr/ansible/id_rsa.pub')}}"
+  tasks:
+    - name: change password hash
+      ansible.builtin.user:
+        state: present
+        name: "{{ user }}"
+        password: "{{ pwd }}"
+      become: yes
+
+    - name: Копирование ключа
+      authorized_key:
+        state: present
+        user: "{{user}}"
+        key: "{{key}}"
+      become: no

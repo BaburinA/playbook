@@ -1,0 +1,68 @@
+---
+- hosts: TestHS0
+  become: true
+  vars_files:
+    - xueta
+  tasks:
+
+    - name: print to file
+      ansible.builtin.copy:
+        content: "ip address,szi name,ver szi"
+        dest: ./whatever.csv
+      delegate_to: localhost
+
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Set Facts
+      set_fact:
+        drweb_agent: false
+        avp_agent: false
+        no_agent: false
+        res_agent: ''
+
+    - name: Print service Drweb
+      set_fact:
+        drweb_agent: true
+      when: ansible_facts.services["drweb-configd"] is defined
+
+    - name: Print service AVP
+      set_fact:
+        avp_agent: true
+      when: ansible_facts.services["klnagent64"] is defined
+
+    - name: Print service Drweb
+      set_fact:
+        no_agent: true
+      when: drweb_agent == false and avp_agent == false
+
+
+    - name: Check Dist Version Drweb
+      ansible.builtin.shell: drweb-ctl -v
+      register: re
+      when: drweb_agent == true
+
+    - name: Resagent struturing
+      set_fact:
+        res_agent: "{{re.stdout | replace(' ', ',')}}"
+      when: drweb_agent == true
+
+    - name: Check Dist Version AVP
+      set_fact:
+        res_agent: "AVP Install"
+      when: avp_agent == true
+
+    - name: Check Dist ALL AVP
+      set_fact:
+        res_agent: "Don't Install SZI"
+      when: no_agent == true
+
+
+#    - debug:
+#       var: drweb_agent
+
+    - name: print to file
+      ansible.builtin.lineinfile:
+        path: ./whatever.csv
+        line: "{{ inventory_hostname }},{{ res_agent }}"
+      delegate_to: localhost

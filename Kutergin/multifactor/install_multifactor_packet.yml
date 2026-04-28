@@ -1,0 +1,154 @@
+- name: Установка multifactor
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    way: /home/distribution/szi-for-linux/multifactor/
+    way2: /home/{{ ansible_user }}/multifactor/
+    files: 
+      pam_radius: pam_radius-2.0.0-7.el7.x86_64.rpm
+      multifactor: multifactor-2.0-1.el7.noarch.rpm
+
+  vars_prompt:
+    - name: input1
+      prompt: "Установка на ВМ сотрудника ЦЦТ? (y/n)"
+      private: no
+
+  tasks:
+    - name: Проверка наличия dpkg
+      stat:
+        path: /usr/bin/dpkg
+      register: dpkg_check
+
+    - name: Определение пакетного менеджера
+      set_fact: 
+        pkg_manager: "{{ 'dpkg' if dpkg_check.stat.exists else 'rpm' }}"
+
+    - name: Вывод информации о пакетном менеджере
+      debug:
+        msg: "Пакетный менеджер: {{ pkg_manager }}"
+
+    - name: Проверка установлен ли пакет multifactor
+      shell: rpm -qa | grep -q multifactor
+      register: multifactor_installed
+      ignore_errors: yes
+      changed_when: false
+      when: pkg_manager == 'rpm'
+
+    - name: Вывод статуса установки пакета multifactor
+      debug:
+        msg: >-
+          {{ 'Пакет multifactor УЖЕ УСТАНОВЛЕН — все действия будут пропущены' 
+          if multifactor_installed.rc == 0 
+          else 'Пакет multifactor НЕ УСТАНОВЛЕН — будет выполнена установка' }}
+      when: pkg_manager == 'rpm'
+
+    - name: Проверка наличия файла xrdpstart.sh (до удаления)
+      stat:
+        path: /etc/xrdpstart.sh
+      register: xrdp_check_initial
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+
+    - name: Вывод результата проверки файла xrdpstart.sh
+      debug:
+        msg: "{{ 'файл xrdpstart.sh найден' if xrdp_check_initial.stat.exists | default(false) else 'файл xrdpstart.sh не найден' }}"
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+
+    - name: Закомментировать строку с pam_radius_auth.so в /etc/pam.d/sshd
+      replace:
+        path: /etc/pam.d/sshd
+        regexp: '^(auth\s+required\s+pam_radius_auth\.so.*)'
+        replace: '#\1'
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - xrdp_check_initial.stat.exists | default(false)
+
+    - name: Закомментировать строку с pam_radius_auth.so в /etc/pam.d/xrdp-sesman
+      replace:
+        path: /etc/pam.d/xrdp-sesman
+        regexp: '^(auth\s+required\s+pam_radius_auth\.so.*)'
+        replace: '#\1'
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - xrdp_check_initial.stat.exists | default(false)
+
+    - name: Закомментировать активные строки в /etc/pam_radius_ssh.conf
+      replace:
+        path: /etc/pam_radius_ssh.conf
+        regexp: '^([^#\s].*)$'
+        replace: '#\1'
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - xrdp_check_initial.stat.exists | default(false)
+
+    - name: Удаление файла xrdpstart.sh
+      file:
+        path: /etc/xrdpstart.sh
+        state: absent
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - xrdp_check_initial.stat.exists | default(false)
+
+    - name: Проверка отсутствия файла xrdpstart.sh (после удаления)
+      stat:
+        path: /etc/xrdpstart.sh
+      register: xrdp_check_final
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+
+    - name: Вывод результата финальной проверки файла xrdpstart.sh
+      debug:
+        msg: "{{ 'файл xrdpstart.sh успешно удалён' if not xrdp_check_final.stat.exists | default(true) else 'ОШИБКА: файл xrdpstart.sh всё ещё существует!' }}"
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+
+    - name: Копирование папки multifactor
+      copy:
+        src: "{{ way }}"
+        dest: "{{ way2 }}"
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - not xrdp_check_final.stat.exists | default(true)
+
+    - name: Установка pam_radius
+      dnf:
+        name: "{{ way2 }}/{{ files.pam_radius }}"
+        state: present
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - not xrdp_check_final.stat.exists | default(true)
+        - input1 | lower == 'n'
+
+    - name: Установка multifactor
+      dnf:
+        name: "{{ way2 }}/{{ files.multifactor }}"
+        state: present
+        disable_gpg_check: yes
+      when: 
+        - pkg_manager == 'rpm'
+        - multifactor_installed.rc != 0
+        - not xrdp_check_final.stat.exists | default(true)
+
+    - name: Получение статуса службы multifactor
+      shell: systemctl status multifactor 2>&1 || true
+      register: multifactor_service_status
+      when: pkg_manager == 'rpm'
+
+    - name: Вывод статуса службы multifactor
+      debug:
+        msg: |
+          Статус службы multifactor:
+          {{ multifactor_service_status.stdout | default('Служба не найдена или не запущена') }}
+      when: pkg_manager == 'rpm'

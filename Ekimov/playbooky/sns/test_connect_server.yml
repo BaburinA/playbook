@@ -1,0 +1,61 @@
+- name: Подключение агентов к серверу безопасности СНС
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    login: "snsadmin"
+    password: "!28EdjGznVtc"
+    servers:
+      - { name: "Армы администраторов ЦОД", ip_group: ["sa", "us", "uib", "uszi"], target_ip: "192.168.131.3" }
+      - { name: "Подрядчики", target_ip: "192.168.131.6" }
+      - { name: "Буферные машины", ip_group: ["bvm"], target_ip: "192.168.131.10" }
+      - { name: "Армы обычных пользователей", ip_group: ["psufed", "tsvks", "vdido", "feo", "oizd", "sos", "pis", "kpis", "iotkiogv"], target_ip: "192.168.131.4" }
+
+  tasks:
+    - name: Убедиться, что Python-библиотека pexpect установлена
+      ansible.builtin.yum:
+        name: python3-pexpect
+        state: present
+
+    - name: Проверка состояния подключения
+      command: "/opt/securitycode/sns/bin/snnetctl -s"
+      register: snnetctl_status
+      ignore_errors: yes  # Игнорируем ошибку, если команда не выполняется
+
+    - name: Проверка, подключена ли станция
+      debug:
+        msg: "{{ snnetctl_status.stdout | regex_replace('Обновление настроек каждые 60 минут', '') | regex_replace('\n', ' ') }}"
+      when: "'Удаленное управление подключено' in snnetctl_status.stdout"
+
+    - name: Завершить выполнение, если станция уже подключена
+      meta: end_play
+      when: "'Удаленное управление подключено' in snnetctl_status.stdout"
+
+    - name: Проверка выбора
+      fail:
+        msg: "Неверный выбор, выберите номер от 1 до 4."
+      when: server_choice not in ['1', '2', '3', '4']
+
+    - name: Определение группы хостов по выбору
+      set_fact:
+        selected_groups: "{{ servers[server_choice | int - 1].ip_group | default([]) }}"
+        target_ip: "{{ servers[server_choice | int - 1].target_ip | default(servers[server_choice | int - 1].ip) }}"
+
+    - name: Извлечение хостов из выбранных групп
+      set_fact:
+        selected_hosts: "{{ selected_groups | map('extract', hostvars) | flatten }}"
+
+    - name: Подключение к выбранным группам с использованием команды snnetctl
+      expect:
+        command: "/opt/securitycode/sns/bin/snnetctl -e -u {{ login }} -c {{ target_ip }}"
+        responses:
+          "Пароль пользователя 'snsadmin':": "{{ password }}"
+        timeout: 60
+      loop: "{{ selected_hosts }}"
+      register: snnetctl_output
+      ignore_errors: yes  # Игнорируем ошибку, чтобы продолжить выполнение
+
+    - name: Вывод результатов подключения
+      debug:
+        msg: "Cервер подключения: {{ target_ip }}. Результат: {{ snnetctl_output.stdout | default('Нет вывода') | regex_replace(\"Пароль пользователя 'snsadmin'\", '') | regex_replace('[\r\n]', ' ') | regex_replace('.*(Удаленное управление подключено)', '\\1') }}"
+      when: snnetctl_output.stdout is defined

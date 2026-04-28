@@ -1,0 +1,1079 @@
+#!/usr/bin/env python3
+
+import os
+import asyncio
+import re
+import yaml
+import logging
+import json
+from datetime import datetime
+from typing import List, Dict
+from pathlib import Path
+
+import pty
+import fcntl
+import termios
+import struct
+import subprocess
+
+from textual.app import App, ComposeResult
+from textual.widgets import Header, Static, Button, Select, RichLog, Input
+from textual.containers import Vertical, Horizontal
+from textual import on
+from rich.text import Text
+from textual.message import Message
+
+from textual.reactive import reactive
+from textual.events import Click
+
+EXCLUDE_PATHS = [
+    "playbook/Ekimov",
+    "playbook/Sitdikov"
+]
+
+def safe_rglob(directory: Path, pattern: str) -> List[Path]:
+    results = []
+    try:
+        if not directory.exists() or directory.is_symlink() or directory.is_mount():
+            return results
+        for item in directory.iterdir():
+            try:
+                if item.name.startswith('.'):
+                    continue
+                if item.is_symlink() or item.is_mount():
+                    continue
+                rel_path = item.relative_to(Path.home())
+                if any(excluded in str(rel_path) for excluded in EXCLUDE_PATHS):
+                    continue
+                if item.is_dir():
+                    results.extend(safe_rglob(item, pattern))
+                elif item.is_file() and item.match(pattern):
+                    results.append(item)
+            except (PermissionError, OSError, FileNotFoundError) as e:
+                logging.debug(f"Пропуск {item}: {e}")
+                continue
+    except (PermissionError, OSError, FileNotFoundError) as e:
+        logging.warning(f"Не удалось получить доступ к {directory}: {e}")
+    return results
+
+def find_all_playbooks() -> List[Path]:
+    home = Path.home()
+    playbooks = []
+    if not home.exists():
+        return []
+    yml_files = safe_rglob(home, "*.yml")
+    yaml_files = safe_rglob(home, "*.yaml")
+    playbooks.extend(yml_files)
+    playbooks.extend(yaml_files)
+    return sorted(playbooks)
+
+def find_all_inventory_files() -> List[Path]:
+    home = Path.home()
+    inventories = []
+    if not home.exists():
+        return []
+    all_files = safe_rglob(home, "*")
+    for file_path in all_files:
+        try:
+            file_name = file_path.name
+            if (file_name.startswith("inv") and not file_path.suffix and file_path.is_file()):
+                inventories.append(file_path)
+            elif file_name in ["inventory", "hosts"] and file_path.is_file():
+                inventories.append(file_path)
+        except (PermissionError, OSError) as e:
+            logging.debug(f"Пропуск inventory файла {file_path}: {e}")
+            continue
+    return sorted(inventories)
+
+ANSIBLE_GUI_DIR = Path.home() / ".ansible-gui"
+ANSIBLE_GUI_DIR.mkdir(exist_ok=True)
+LOG_DIR = ANSIBLE_GUI_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOG_DIR / "debug.log"
+
+def log_debug(message: str):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] {message}"
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(log_entry + "\n")
+    try:
+        app = App.get_running_app()
+        log_widget = app.query_one("#output_log", RichLog)
+        if message.startswith("[OK]"):
+            icon = "+"
+            color = "green"
+        elif message.startswith("[ERR]"):
+            icon = "X"
+            color = "red"
+        elif message.startswith("[!]"):
+            icon = "!"
+            color = "yellow"
+        elif message.startswith("[INFO]") or message.startswith("[TIP]"):
+            icon = "*"
+            color = "cyan"
+        elif message.startswith("[RUN]") or message.startswith("[START]"):
+            icon = ">"
+            color = "yellow"
+        elif message.startswith("[STOP]"):
+            icon = "X"
+            color = "red"
+        elif message.startswith("[CFG]") or message.startswith("[SSH]"):
+            icon = "C"
+            color = "magenta"
+        elif message.startswith("[VAR_PROMPT]"):
+            icon = "?"
+            color = "blue"
+        else:
+            icon = "-"
+            color = "white"
+        styled_text = Text.from_markup(f"[bold]{icon}[/] [{color}]{message}[/]")
+        log_widget.write(styled_text)
+    except Exception:
+        pass
+
+def find_playbooks() -> List[str]:
+    playbooks = []
+    all_playbook_files = find_all_playbooks()
+    for playbook_file in all_playbook_files:
+        rel_path = playbook_file.relative_to(Path.home())
+        playbooks.append(str(rel_path))
+    playbooks = sorted(playbooks)
+    if playbooks:
+        log_debug(f"[OK] Найдено плейбуков: {len(playbooks)}")
+    else:
+        log_debug("[!] Плейбуки не найдены")
+    return playbooks
+
+def find_inventory_files() -> List[str]:
+    inventories = []
+    all_inventory_files = find_all_inventory_files()
+    for inv_file in all_inventory_files:
+        rel_path = inv_file.relative_to(Path.home())
+        inventories.append(str(rel_path))
+    inventories.sort()
+    log_debug(f"[INFO] Найдены инвентари: {inventories}")
+    return inventories
+
+class CheckboxChanged(Message):
+    control = None
+
+    def __init__(self, sender):
+        self.control = sender
+        super().__init__()
+
+class CustomCheckbox(Static):
+    DEFAULT_CSS = """
+    CustomCheckbox {
+        width: auto;
+        padding: 1 3;
+        height: 5;
+        color: white;
+        background: $background;
+        border: none;
+        outline: none;
+    }
+    """
+
+    checked = reactive(False)
+
+    def __init__(self, label: str, id: str = None):
+        super().__init__(id=id)
+        self.label = label
+        self.update_display()
+
+    def update_display(self):
+        if self.checked:
+            text = Text("[X] ")
+            text.append(self.label, style="green")
+            self.update(text)
+        else:
+            text = Text("[ ] ")
+            text.append(self.label, style="white")
+            self.update(text)
+
+    def watch_checked(self):
+        self.update_display()
+        self.post_message(CheckboxChanged(self))
+
+    async def _on_click(self, event: Click) -> None:
+        self.checked = not self.checked
+        event.stop()
+
+class PlaybookApp(App):
+    CSS = """
+    Screen {
+        layout: vertical;
+        height: 100%;
+    }
+
+    #header_bar {
+        dock: top;
+        layout: horizontal;
+        height: 4;
+        width: 100%;
+        padding: 0 2;
+        background: $surface;
+        border-bottom: wide $background 100%;
+    }
+
+    #header_bar > * {
+        height: 4;
+        align: center middle;
+    }
+
+    #back_btn_container, #exit_btn_container {
+        width: 14;
+        align: center middle;
+    }
+
+    #header_title_container {
+        width: 1fr;
+        offset: 65 0;
+        align: center middle;
+        text-align: center;
+        text-style: bold;
+        color: #00ccff;
+    }
+
+    #back_btn, #exit_btn {
+        margin: 0;
+        width: 100%;
+        height: 3;
+        padding: 0 2;
+        text-align: center;
+        text-style: bold;
+    }
+
+    #back_btn {
+        background: yellow;
+        color: black;
+    }
+
+    #exit_btn {
+        background: red;
+        color: white;
+    }
+
+    #main_container {
+        layout: vertical;
+        height: 1fr;
+        width: 100%;
+        padding: 1;
+    }
+
+    #output_container {
+        layout: vertical;
+        height: auto;
+        width: 100%;
+        border-top: heavy $background 70%;
+        background: $boost;
+        padding: 0;
+    }
+
+    #output_log {
+        width: 100%;
+        height: 100%;
+        min-height: 17;
+        max-height: 100%;
+        border: none;
+        background: #1e1e1e;
+        color: $text;
+        padding: 0 1;
+        margin: 0;
+        overflow-y: auto;
+    }
+
+    #selected_hosts_display {
+        text-style: bold;
+        padding: 0 2;
+        background: black;
+        border: solid #00ff00;
+        margin: 1 0;
+    }
+
+    Select {
+        width: 50;
+        height: auto;
+    }
+
+    Button {
+        margin: 0 0;
+    }
+
+    #run_btn {
+        background: #4CAF50;
+        color: white;
+        height: 3;
+    }
+
+    #clear_btn {
+        background: #696969;
+        color: white;
+        margin: 0;
+        width: auto;
+        min-width: 14;
+        height: 3;
+        padding: 0 2;
+        text-align: center;
+    }
+
+    .section-label {
+        margin: 1 0;
+        color: yellow;
+        text-style: bold;
+    }
+
+    #prompt_input_field {
+        display: none;
+    }
+
+    #apply_prompt_btn {
+        display: none;
+    }
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.selected_hosts = []
+        self.current_ips = []
+        self.proc = None
+        self.user_answers: Dict[str, str] = {}
+        self.vars_prompt_data = {}
+        self.current_prompt_var = None
+        self.prompt_queue = []
+        self.playbook_to_run = None
+        self.inventory_to_run = None
+        self.limit_to_run = ""
+        self.use_password = False
+        self.awaiting_ssh_password = False
+        self.ssh_password = ""
+        self.temp_vars_file = None
+
+    def cleanup_temp_vars_file(self):
+        """Удаляет временный файл с переменными, если он существует"""
+        if self.temp_vars_file:
+            try:
+                if os.path.exists(self.temp_vars_file):
+                    os.unlink(self.temp_vars_file)
+                    log_debug(f"[CFG] Временный файл переменных удалён: {self.temp_vars_file}")
+            except Exception as e:
+                log_debug(f"[ERR] Ошибка при удалении временного файла: {e}")
+            finally:
+                self.temp_vars_file = None
+
+    def mask_sensitive_args(self, cmd: List[str]) -> List[str]:
+        """Маскирует чувствительные значения в команде, например пароли в --extra-vars"""
+        masked = []
+        for arg in cmd:
+            if arg.startswith("@") and "/tmp/" in arg:
+                masked.append("@[temp_vars_file]")
+            elif "ansible_password" in arg or "ansible_ssh_pass" in arg:
+                masked.append("'****'")
+            else:
+                masked.append(arg)
+        return masked
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(id="header_bar"):
+            with Vertical(id="back_btn_container"):
+                back_btn = Button("[<] Назад", id="back_btn")
+                back_btn.styles.display = "none"
+                yield back_btn
+            with Vertical(id="header_title_container"):
+                yield Static("Ansible-GUI", id="header_title")
+            with Vertical(id="exit_btn_container"):
+                yield Button("[X] Выход", id="exit_btn")
+
+        with Vertical(id="main_container"):
+            yield Static("[D] Выберите Playbook:", id="playbook_label")
+            with Horizontal():
+                yield Select(id="playbook_select", options=[(p, p) for p in find_playbooks()])
+                yield Button("[C] Очистить", id="clear_btn")
+                yield Button("[>] Запустить", id="run_btn")
+                yield CustomCheckbox("Использовать SSH-пароль для входа на хосты", id="use_password_checkbox")
+
+            yield Static("[I] Выберите инвентарный файл:", id="inventory_label")
+            with Horizontal():
+                yield Select(id="inventory_select", options=[(i, i) for i in find_inventory_files()])
+
+            yield Static("[L] Выберите хост (-l):", id="label_limit")
+            yield Static(" Выбранные хосты:", id="selected_hosts_label")
+            yield Static("", id="selected_hosts_display")
+
+            yield Static("", id="prompt_question")
+            yield Input(placeholder="Введите ответ...", id="prompt_input_field")
+            yield Button("Продолжить", id="apply_prompt_btn")
+
+            with Vertical(id="output_container"):
+                yield RichLog(id="output_log", wrap=True, max_lines=100000)
+
+    def on_mount(self):
+        log_debug("[START] Приложение запущено")
+        self.cleanup_temp_vars_file()  # На случай, если файл остался от прошлого запуска
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.clear()
+        output_log.write("[+] Приложение запущено.")
+        output_log.write("[*] Совет: выберите инвентарный файл.")
+
+    @on(Select.Changed, "#inventory_select")
+    async def on_inventory_changed(self, event):
+        inventory_file = event.value
+        if inventory_file == Select.BLANK:
+            return
+        log_debug(f"[INFO] Выбран инвентарь: {inventory_file}")
+        items = self.extract_ips(inventory_file)
+        log_debug(f"[INFO] Найдено: {len(items)} элементов (группы + IP)")
+
+        try:
+            old_select = self.query_one("#limit_select", Select)
+            await old_select.remove()
+        except Exception:
+            pass
+
+        new_select = Select(
+            id="limit_select",
+            options=[(item, item) for item in items],
+            prompt="[--- выберите группу или IP ---]"
+        )
+
+        target_label = self.query_one("#label_limit", Static)
+        await self.query_one("#main_container").mount(new_select, after=target_label)
+
+        self.selected_hosts.clear()
+        self.query_one("#selected_hosts_display").update("")
+
+    def get_group_ips(self, group_name: str, inventory_file: str) -> List[str]:
+        inventory_path = Path.home() / inventory_file
+        items = []
+        try:
+            with open(inventory_path, "r", encoding="utf-8") as f:
+                current_group = None
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("[") and line.endswith("]"):
+                        group_match = re.match(r'^\s*\[([^:]+)\]\s*$', line)
+                        if group_match:
+                            current_group = group_match.group(1).strip()
+                            continue
+                    if current_group == group_name:
+                        if "#" in line:
+                            line = line.split("#")[0].strip()
+                        if not line:
+                            continue
+                        if line.startswith("["):
+                            continue
+                        if "=" in line:
+                            continue
+                        ansible_match = re.search(r'ansible_host=(\S+)', line)
+                        if ansible_match:
+                            items.append(ansible_match.group(1))
+                            continue
+                        host_part = line.split()[0]
+                        items.append(host_part)
+        except Exception as e:
+            log_debug(f"[ERR] Ошибка при чтении инвентаря {inventory_file}: {e}")
+        return items
+
+    @on(Select.Changed, "#limit_select")
+    async def on_limit_select_changed(self, event):
+        selected_item = event.value
+        if selected_item == Select.BLANK or selected_item in self.selected_hosts:
+            return
+        log_debug(f"[INFO] Выбран элемент для ограничения: {selected_item}")
+
+        ip_pattern = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
+        is_ip = ip_pattern.match(selected_item) is not None
+
+        if is_ip:
+            self.selected_hosts.append(selected_item)
+            log_debug(f"[+] Добавлен хост: {selected_item}")
+        else:
+            self.selected_hosts.append(selected_item)
+            log_debug(f"[+] Добавлена группа: {selected_item}")
+
+        inventory_file = self.query_one("#inventory_select").value
+        text = Text()
+
+        for i, host in enumerate(self.selected_hosts):
+            if not ip_pattern.match(host):
+                items = self.get_group_ips(host, inventory_file)
+                if items:
+                    group_text = Text.from_markup(f"[yellow]{host}[/]")
+                    ips_text = Text.from_markup(f"({', '.join(items)})")
+                    text.append(group_text)
+                    text.append(ips_text)
+                else:
+                    text.append(Text.from_markup(f"[yellow]{host}[/]"))
+            else:
+                text.append(Text(host))
+            if i < len(self.selected_hosts) - 1:
+                text.append(", ")
+
+        self.query_one("#selected_hosts_display").update(text)
+
+        container = self.query_one("#main_container")
+
+        try:
+            old_select = self.query_one("#limit_select", Select)
+            await old_select.remove()
+        except Exception:
+            pass
+
+        available_items = [item for item in self.extract_ips(inventory_file) if item != selected_item]
+        new_select = Select(
+            id="limit_select",
+            options=[(item, item) for item in available_items],
+            prompt="[--- выберите группу или IP ---]"
+        )
+
+        target_label = self.query_one("#label_limit", Static)
+        await container.mount(new_select, after=target_label)
+
+    def extract_vars_prompt(self, playbook_path: str) -> List[Dict[str, str]]:
+        full_path = Path.home() / playbook_path
+        try:
+            with open(full_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if not isinstance(data, list):
+                return []
+            prompts = []
+            for play in data:
+                if isinstance(play, dict) and "vars_prompt" in play:
+                    for item in play["vars_prompt"]:
+                        if isinstance(item, dict) and "name" in item and "prompt" in item:
+                            prompt_info = {
+                                "name": item["name"],
+                                "prompt": item.get("prompt", "Введите значение:"),
+                                "default": item.get("default", ""),
+                                "private": item.get("private", False),
+                                "confirm": item.get("confirm", False)
+                            }
+                            prompts.append(prompt_info)
+            return prompts
+        except Exception as e:
+            log_debug(f"[ERR] Ошибка при чтении vars_prompt: {e}")
+            return []
+
+    def hide_prompt_input(self):
+        self.query_one("#prompt_question").update("")
+        try:
+            input_field = self.query_one("#prompt_input_field", Input)
+            input_field.styles.display = "none"
+            btn = self.query_one("#apply_prompt_btn", Button)
+            btn.styles.display = "none"
+        except Exception:
+            pass
+
+    def show_prompt_input(self, question: str, is_password=False):
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.write(f"\n[?] {question}")
+        input_field = self.query_one("#prompt_input_field", Input)
+        input_field.styles.display = "block"
+        input_field.value = ""
+        input_field.password = is_password
+        btn = self.query_one("#apply_prompt_btn", Button)
+        btn.styles.display = "block"
+        self.set_focus(input_field)
+
+    def show_ssh_password_prompt(self):
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.write("\nSSH Password (для входа на хосты):")
+        input_field = self.query_one("#prompt_input_field", Input)
+        input_field.styles.display = "block"
+        input_field.value = ""
+        input_field.password = True
+        btn = self.query_one("#apply_prompt_btn", Button)
+        btn.styles.display = "block"
+        btn.label = "Продолжить →"
+        self.set_focus(input_field)
+
+    def show_next_prompt(self):
+        if not self.prompt_queue:
+            self.hide_prompt_input()
+            asyncio.create_task(self.execute_playbook(
+                self.playbook_to_run,
+                self.inventory_to_run,
+                self.limit_to_run,
+                self.user_answers
+            ))
+            return
+        prompt = self.prompt_queue.pop(0)
+        self.current_prompt_var = prompt["name"]
+        self.show_prompt_input(prompt["prompt"], prompt["private"])
+
+    async def execute_playbook(self, playbook, inventory, limit, extra_vars):
+        playbook_path = Path.home() / playbook
+        inventory_path = Path.home() / inventory
+        cmd = ["/usr/bin/ansible-playbook", "-i", str(inventory_path)]
+
+        if limit:
+            cmd += ["-l", limit]
+
+        if self.use_password and self.ssh_password.strip():
+            cmd += [
+                "--extra-vars", "ansible_ssh_common_args='-o PubkeyAuthentication=no -o PreferredAuthentications=password -o PasswordAuthentication=yes -o ControlMaster=no -o GSSAPIAuthentication=no -o KbdInteractiveAuthentication=no -o ChallengeResponseAuthentication=no -o HostbasedAuthentication=no'",
+                "--extra-vars", "ansible_ssh_private_key_file=/dev/null"
+            ]
+
+            import tempfile
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False)
+            try:
+                extra_vars_dict = {"ansible_password": self.ssh_password}
+                yaml.dump(extra_vars_dict, temp_file, allow_unicode=True)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+                temp_vars_file = temp_file.name
+                os.chmod(temp_vars_file, 0o600)
+                self.temp_vars_file = temp_vars_file
+                cmd += ["--extra-vars", f"@{temp_vars_file}"]
+            finally:
+                temp_file.close()
+
+        for key, value in extra_vars.items():
+            cmd += ["--extra-vars", f"{key}={value}"]
+
+        cmd.append(str(playbook_path))
+
+        # ✅ Используем self.mask_sensitive_args
+        masked_cmd = self.mask_sensitive_args(cmd)
+        log_debug(f"[RUN] Сформирована команда: {' '.join(masked_cmd)}")
+
+        env = {
+            **os.environ,
+            "ANSIBLE_FORCE_COLOR": "1",
+            "PYTHONUNBUFFERED": "1",
+            "ANSIBLE_HOST_KEY_CHECKING": "False"
+        }
+
+        master_fd, slave_fd = pty.openpty()
+        try:
+            window_size = struct.pack("HHHH", 24, 80, 0, 0)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, window_size)
+        except Exception:
+            pass
+
+        self.proc = subprocess.Popen(
+            cmd,
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            env=env,
+            preexec_fn=os.setsid,
+            close_fds=True,
+            universal_newlines=False,
+            bufsize=0
+        )
+        os.close(slave_fd)
+
+        # ✅ Подменяем wait, чтобы удалить файл после завершения
+        if self.temp_vars_file:
+            original_wait = self.proc.wait
+            def wait_and_cleanup():
+                ret = original_wait()
+                self.cleanup_temp_vars_file()
+                return ret
+            self.proc.wait = wait_and_cleanup
+
+        log_dir = LOG_DIR
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_file = log_dir / f"playbook_{timestamp}.log"
+
+        self.query_one("#back_btn").styles.display = "block"
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.clear()
+        output_log.write(f"[>] Запуск: {playbook}")
+        if limit:
+            output_log.write(f"Запускаю на хостах: {limit}")
+        else:
+            output_log.write("[!] ВНИМАНИЕ: Запуск на всех хостах из инвентаря!")
+        output_log.write(f"Cmd: {' '.join(masked_cmd)}")
+
+        loop = asyncio.get_event_loop()
+        reader = asyncio.StreamReader()
+        protocol = asyncio.StreamReaderProtocol(reader)
+        await loop.connect_read_pipe(lambda: protocol, os.fdopen(master_fd, 'rb'))
+
+        with open(log_file, "w", encoding="utf-8") as f:
+            while True:
+                try:
+                    line = await asyncio.wait_for(reader.readline(), timeout=5.0)
+                    if not line:
+                        break
+                    line_str = line.decode("utf-8", errors="replace").rstrip()
+                    f.write(line_str + "\n")
+                    f.flush()
+                    output_log.write(line_str)
+                except asyncio.TimeoutError:
+                    continue
+                except (OSError, UnicodeDecodeError, Exception) as e:
+                    log_debug(f"[INFO] Чтение завершено: {type(e).__name__}: {e}")
+                    break
+
+        # ❌ Убрано: await loop.run_in_executor(None, self.proc.wait) — wait_and_cleanup вызовется автоматически
+
+        returncode = self.proc.returncode
+        self.proc = None
+
+        ansi_escape = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            clean_content = ansi_escape.sub('', content)
+            start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            header = f"--- Запуск плейбука: {start_time} ---\n"
+            header += f"Playbook: {playbook}\n"
+            if limit:
+                header += f"Запущено на хостах: {limit}\n"
+            else:
+                header += "Запуск на всех хостах инвентаря\n"
+            header += "\n"
+            with open(log_file, "w", encoding="utf-8") as f:
+                f.write(header + clean_content)
+        except Exception as e:
+            log_debug(f"[ERR] Ошибка при обработке лога: {e}")
+
+        output_log.write(f"\n[+] Playbook завершён (код: {returncode})")
+
+    async def show_fullscreen_log(self):
+        elements_to_hide = [
+            "#playbook_select", "#inventory_select", "#limit_select",
+            "#run_btn", "#clear_btn",
+            "#playbook_label", "#inventory_label", "#label_limit", "#selected_hosts_label",
+            "#selected_hosts_display", "#use_password_checkbox"
+        ]
+
+        for el in elements_to_hide:
+            try:
+                for widget in self.query(el):
+                    widget.styles.display = "none"
+            except Exception:
+                pass
+
+        self.query_one("#back_btn").styles.display = "block"
+
+        try:
+            old_log = self.query_one("#output_log", RichLog)
+            await old_log.remove()
+        except Exception:
+            pass
+
+        full_log = RichLog(id="output_log", wrap=True, max_lines=100000, highlight=False)
+        await self.query_one("#main_container").mount(full_log)
+        self.set_focus(full_log)
+
+    @on(Button.Pressed, "#run_btn")
+    async def run_playbook(self):
+        playbook = self.query_one("#playbook_select").value
+        inventory = self.query_one("#inventory_select").value
+        log_debug(f"[BUTTON] Нажата кнопка 'Запустить'. Плейбук: '{playbook}', Инвентарь: '{inventory}'")
+
+        if playbook is Select.BLANK:
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.clear()
+            output_log.write("[X] Ошибка: не выбран плейбук.")
+            return
+        if inventory is Select.BLANK:
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.clear()
+            output_log.write("[X] Ошибка: не выбран инвентарный файл.")
+            return
+
+        playbook_path = Path.home() / playbook
+        inventory_path = Path.home() / inventory
+
+        if not playbook_path.exists():
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.clear()
+            output_log.write(f"[X] Файл не существует: {playbook_path}")
+            return
+        if not playbook_path.is_file():
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.clear()
+            output_log.write(f"[X] Это не файл: {playbook_path}")
+            return
+        if not inventory_path.exists():
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.clear()
+            output_log.write(f"[X] Инвентарь не найден: {inventory_path}")
+            return
+
+        limit = ",".join(self.selected_hosts) if self.selected_hosts else ""
+
+        self.playbook_to_run = playbook
+        self.inventory_to_run = inventory
+        self.limit_to_run = limit
+        self.user_answers.clear()
+        self.use_password = self.query_one("#use_password_checkbox").checked
+
+        vars_prompts = self.extract_vars_prompt(playbook)
+        self.vars_prompt_data = {p["name"]: p for p in vars_prompts}
+        self.prompt_queue = vars_prompts.copy()
+
+        await self.show_fullscreen_log()
+
+        if self.use_password:
+            self.awaiting_ssh_password = True
+            self.show_ssh_password_prompt()
+            return
+
+        if self.prompt_queue:
+            self.show_next_prompt()
+            return
+
+        await self.execute_playbook(playbook, inventory, limit, {})
+
+    @on(Select.Changed, "#playbook_select")
+    async def on_playbook_changed(self, event):
+        playbook = event.value
+        if playbook == Select.BLANK:
+            log_debug("[INFO] Плейбук сброшен (не выбран)")
+            return
+        log_debug(f"[INFO] Выбран плейбук: {playbook}")
+
+    @on(CheckboxChanged, "#use_password_checkbox")
+    async def on_use_password_changed(self, event):
+        self.use_password = event.control.checked
+        log_debug(f"[CFG] Использование пароля: {self.use_password}")
+
+    @on(Button.Pressed, "#apply_prompt_btn")
+    async def on_apply_prompt(self):
+        input_field = self.query_one("#prompt_input_field", Input)
+        user_answer = input_field.value.strip()
+
+        if self.awaiting_ssh_password:
+            if not user_answer:
+                output_log = self.query_one("#output_log", RichLog)
+                output_log.write("[!] Пароль не может быть пустым.")
+                return
+            self.ssh_password = user_answer
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.write("[✓] SSH-пароль принят.")
+            self.hide_prompt_input()
+            self.awaiting_ssh_password = False
+
+            if self.prompt_queue:
+                self.show_next_prompt()
+                return
+
+            await self.execute_playbook(
+                self.playbook_to_run,
+                self.inventory_to_run,
+                self.limit_to_run,
+                self.user_answers
+            )
+            return
+
+        if not user_answer and self.current_prompt_var in self.vars_prompt_data:
+            default_value = self.vars_prompt_data[self.current_prompt_var].get("default", "")
+            if default_value:
+                user_answer = default_value
+
+        if not user_answer:
+            output_log = self.query_one("#output_log", RichLog)
+            output_log.write("[!] Ответ не может быть пустым.")
+            return
+
+        self.user_answers[self.current_prompt_var] = user_answer
+
+        if self.current_prompt_var in self.vars_prompt_data:
+            prompt_info = self.vars_prompt_data[self.current_prompt_var]
+            question = prompt_info["prompt"]
+            is_private = prompt_info.get("private", False)
+            log_debug(f"[VAR_PROMPT] Вопрос: '{question}' → Ответ получен (private: {is_private})")
+        else:
+            log_debug(f"[VAR_PROMPT] Неизвестный промпт: {self.current_prompt_var}")
+
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.write(f"[✓] Ответ: {user_answer}")
+        self.show_next_prompt()
+
+    @on(Button.Pressed, "#back_btn")
+    async def back_to_main(self):
+        if self.proc and self.proc.returncode is None:
+            log_debug("[ERR] Процесс работает. Нельзя вернуться.")
+            return
+
+        log_debug("[BUTTON] Нажата кнопка 'Назад' — возврат на главный экран")
+        self.cleanup_temp_vars_file()  # ✅ Удаляем временный файл
+
+        try:
+            fullscreen_log = self.query_one("#output_log", RichLog)
+            if fullscreen_log.parent.id == "main_container":
+                await fullscreen_log.remove()
+        except Exception:
+            pass
+
+        try:
+            container = self.query_one("#output_container", Vertical)
+            try:
+                log_widget = container.query_one("#output_log", RichLog)
+            except Exception:
+                log_widget = RichLog(id="output_log", wrap=True, max_lines=100000, highlight=False)
+                await container.mount(log_widget)
+        except Exception:
+            container = Vertical(id="output_container")
+            log_widget = RichLog(id="output_log", wrap=True, max_lines=100000, highlight=False)
+            await container.mount(log_widget)
+            await self.query_one("#main_container").mount(container)
+
+        elements_to_show = [
+            "#playbook_select", "#inventory_select", "#run_btn", "#clear_btn",
+            "#playbook_label", "#inventory_label", "#label_limit", "#selected_hosts_label",
+            "#selected_hosts_display", "#use_password_checkbox"
+        ]
+
+        for el in elements_to_show:
+            try:
+                for widget in self.query(el):
+                    widget.styles.display = "block"
+            except Exception:
+                pass
+
+        self.query_one("#back_btn").styles.display = "none"
+
+        try:
+            old_select = self.query_one("#limit_select", Select)
+            await old_select.remove()
+        except Exception:
+            pass
+
+        inventory_file = self.query_one("#inventory_select").value
+        if inventory_file != Select.BLANK:
+            items = self.extract_ips(inventory_file)
+            self.current_ips = items
+            if items:
+                new_select = Select(
+                    id="limit_select",
+                    options=[(item, item) for item in items],
+                    prompt="[--- выберите группу или IP ---]"
+                )
+                target_label = self.query_one("#label_limit", Static)
+                await self.query_one("#main_container").mount(new_select, after=target_label)
+
+        self.query_one("#selected_hosts_display").update(", ".join(self.selected_hosts))
+
+        self.prompt_queue = []
+        self.hide_prompt_input()
+        self.awaiting_ssh_password = False
+        self.ssh_password = ""
+        self.use_password = False
+        checkbox = self.query_one("#use_password_checkbox", CustomCheckbox)
+        checkbox.checked = False
+
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.clear()
+        output_log.write("[+] Приложение запущено.")
+        output_log.write("[*] Подсказка: выберите инвентарный файл.")
+
+    @on(Button.Pressed, "#exit_btn")
+    def exit_app(self):
+        log_debug("[BUTTON] Нажата кнопка 'Выход'")
+        if self.proc and self.proc.returncode is None:
+            log_debug("[INFO] Плейбук выполняется. Выход невозможен до завершения.")
+            return
+        self.cleanup_temp_vars_file()  # ✅ Удаляем временный файл
+        self.exit()
+
+    def extract_ips(self, inventory_file: str) -> List[str]:
+        inventory_path = Path.home() / inventory_file
+        groups = []
+        ips = set()
+        group_pattern = re.compile(r'^\s*\[(?!\w+:vars)(\w+)\]\s*$')
+        ip_pattern = re.compile(r'\b\d{1,3}(\.\d{1,3}){3}\b')
+        ansible_host_pattern = re.compile(r'ansible_host=(\d{1,3}(\.\d{1,3}){3})')
+        range_pattern = re.compile(r'^(.+)\[([0-9]+):([0-9]+)\]$')  # Шаблон: префикс[начало:конец]
+
+        try:
+            with open(inventory_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    group_match = group_pattern.match(line)
+                    if group_match:
+                        group_name = group_match.group(1)
+                        if group_name and group_name not in groups:
+                            groups.append(group_name)
+                        continue
+                    if line.startswith("[") and ":vars]" in line:
+                        continue
+                    if "#" in line:
+                        line = line.split("#")[0].strip()
+
+                    # Обработка ansible_host
+                    ansible_match = ansible_host_pattern.search(line)
+                    if ansible_match:
+                        ip = ansible_match.group(1)
+                        ips.add(ip)
+                        continue
+
+                    # Обработка диапазонов: например, 192.168.99.[80:83]
+                    range_match = range_pattern.match(line)
+                    if range_match:
+                        prefix = range_match.group(1)
+                        start = int(range_match.group(2))
+                        end = int(range_match.group(3))
+                        if start <= end:
+                            for i in range(start, end + 1):
+                                full_ip = f"{prefix}{i}"
+                                if ip_pattern.fullmatch(full_ip):
+                                    ips.add(full_ip)
+                        continue
+
+                    # Обработка обычных IP
+                    words = line.split()
+                    if words:
+                        candidate = words[0]
+                        if ip_pattern.fullmatch(candidate):
+                            ips.add(candidate)
+        except Exception as e:
+            log_debug(f"[ERR] Ошибка при чтении файла {inventory_file}: {e}")
+
+        result = groups + sorted(list(ips))
+        return result
+
+    @on(Button.Pressed, "#clear_btn")
+    async def clear_selection(self):
+        if self.proc and self.proc.returncode is None:
+            log_debug("[ERR] Процесс запущен. Очистка невозможна.")
+            return
+
+        log_debug("[BUTTON] Нажата кнопка 'Очистить' — сброс всех настроек")
+        self.cleanup_temp_vars_file()  # ✅ Удаляем временный файл
+
+        try:
+            self.query_one("#playbook_select").value = Select.BLANK
+            self.query_one("#inventory_select").value = Select.BLANK
+            await self.query_one("#limit_select").remove()
+        except Exception:
+            pass
+
+        self.selected_hosts.clear()
+        self.current_ips = []
+        self.query_one("#selected_hosts_display").update("")
+        self.user_answers.clear()
+        self.vars_prompt_data = {}
+        self.current_prompt_var = None
+        self.prompt_queue = []
+        self.hide_prompt_input()
+        self.awaiting_ssh_password = False
+        self.ssh_password = ""
+        self.use_password = False
+        checkbox = self.query_one("#use_password_checkbox", CustomCheckbox)
+        checkbox.checked = False
+
+        output_log = self.query_one("#output_log", RichLog)
+        output_log.clear()
+        output_log.write("[C] Все настройки очищены.")
+        output_log.write("[*] Подсказка: выберите инвентарный файл.")
+
+if __name__ == "__main__":
+    separator = "\n" + "="*80 + "\n"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    header = f"{separator} НОВЫЙ ЗАПУСК ПРИЛОЖЕНИЯ: {timestamp} {separator}\n"
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(header)
+    log_debug("[START] Приложение стартовало")
+    PlaybookApp().run()

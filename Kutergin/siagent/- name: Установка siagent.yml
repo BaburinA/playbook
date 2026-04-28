@@ -1,0 +1,112 @@
+---
+
+- name: Установка siagent
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    way: /home/distribution/szi-for-linux/siagent/
+    servers:
+      - ip: "SearchGlobal.udmr.gosdom"
+        rpm_pack: siagent-6.12.2.1~redos~7.3~x86_64.rpm
+      - ip: "SearchGlobal-P.BVM.local"
+        rpm_pack: siagent-6.12.2.1~redos~7.3~x86_64.rpm
+
+    server: "{{servers[input | int]}}"
+    service: si
+    config: /var/siagent/registry.config
+
+  vars_prompt:
+    - name: input
+      prompt: |
+        К какому серверу подключить? 0-udmr, 1-bvm
+        0 {{servers[0].ip}}
+        1 {{servers[1].ip}}
+        Введите (0/1)
+      private: no
+
+  tasks:
+    - name: Ошибка
+      fail:
+        msg: "Нужно выбрать сервер"
+      when: input | int not in [0,1]
+
+    - name: Проверка текущей конфигурации SELinux
+      raw: "grep -E '^SELINUX=' /etc/selinux/config"
+      register: selinux_config
+      ignore_errors: yes
+
+    - name: Вывод текущего статуса SELinux
+      debug:
+        msg: "Текущая конфигурация SELinux: {{ selinux_config.stdout | default('Файл не найден или ошибка') | regex_replace('\n', '') | regex_replace('\r', '') }}"
+
+    - name: SELinux уже выключен
+      debug:
+        msg: "SELinux выключен"
+      when: 
+        - selinux_config.stdout is defined
+        - '"SELINUX=disabled" in selinux_config.stdout'
+
+    - name: Отключение SELinux в конфигурации (если enforcing)
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=disabled'
+        backup: yes
+      when:
+        - selinux_config.stdout is defined
+        - '"SELINUX=enforcing" in selinux_config.stdout'
+
+    - name: Проверка qt5 и siagent
+      raw: rpm -qa qt5 siagent
+      register: result
+
+    - name: Проверка host= в {{config}}
+      raw: "grep -E '^host = ' {{config}}"
+      register: check1
+      ignore_errors: yes
+
+    - name: Копирование пакета {{server.rpm_pack}}
+      copy:
+        src: '{{way}}{{server.rpm_pack}}'
+        dest: '/home/{{ansible_user}}/'
+      become: no
+      when: result.stdout.find('siagent') == -1
+
+    - name: Установка qt5
+      raw: 'dnf install -y -q qt5'
+      when: result.stdout.find('qt5') == -1
+
+    - name: Установка {{server.rpm_pack}}
+      raw: 'dnf install -y -q /home/{{ansible_user}}/{{server.rpm_pack}}'
+      when: result.stdout.find('siagent') == -1
+
+    - name: Перезагрузка службы
+      service:
+        name: "{{service}}"
+        state: restarted
+      when: check1.stdout.find(server.ip) == -1
+
+    - name: Прописывание {{server.ip}} в {{config}}
+      lineinfile:
+        regexp: '^host = '
+        line: 'host = "{{server.ip}}:8999:0:simh";'
+        path: "{{config}}"
+      
+    - name: Повторный рестарт службы
+      service:
+        name: "{{service}}"
+        state: restarted
+      when: check1.stdout.find(server.ip) == -1
+
+    - name: Повторная проверка host= в {{config}}
+      raw: "grep -E '^host =' {{config}}"
+      register: check2
+      ignore_errors: yes
+
+    - name: Вывод
+      debug:
+        msg: [
+          "До: {{check1.stdout | regex_replace('\\n|\\r','')}}",
+          "После: {{check2.stdout | regex_replace('\\n|\\r','')}}"
+        ]

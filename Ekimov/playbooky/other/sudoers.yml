@@ -1,0 +1,49 @@
+- name: Настройка sudoers с выводом изменений
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+
+    - name: Чтение текущего блока sudoers от #includedir
+      shell: awk '/^#includedir \/etc\/sudoers.d/,0' /etc/sudoers
+      register: sudoers_before
+
+    - name: Убедиться, что строка '#includedir /etc/sudoers.d' есть
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        regexp: '^#includedir /etc/sudoers.d'
+        line: '#includedir /etc/sudoers.d'
+        state: present
+        validate: '/usr/sbin/visudo -cf %s'
+
+    # - name: Удалить все строки после '#includedir /etc/sudoers.d'
+    #   ansible.builtin.shell: sed -i '/^#includedir \/etc\/sudoers.d$/q' /etc/sudoers   
+
+    - name: Добавить строку для ansible-ib
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        line: 'ansible-ib ALL=(ALL) NOPASSWD: ALL'
+        insertafter: '^#includedir /etc/sudoers.d'
+        state: present
+        validate: '/usr/sbin/visudo -cf %s'
+
+    # - name: Добавить строку для %ССА_адм
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/sudoers
+    #     line: '%ССА_адм ALL=(ALL) NOPASSWD: ALL'
+    #     insertafter: '^#includedir /etc/sudoers.d'
+    #     state: present
+    #     validate: '/usr/sbin/visudo -cf %s' 
+
+    - name: Повторное чтение sudoers блока после изменений
+      shell: awk '/^#includedir \/etc\/sudoers.d/,0' /etc/sudoers
+      register: sudoers_after
+
+    - name: Вывод изменений блока sudoers
+      debug:
+        msg:
+          - "До изменений:"
+          - "{{ sudoers_before.stdout_lines | default([]) }}"
+          - "После изменений:"
+          - "{{ sudoers_after.stdout_lines | default([]) }}"

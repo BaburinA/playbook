@@ -1,0 +1,11 @@
+- name: restart service kesl
+  hosts: all
+  become: true
+  gather_facts: no
+
+  tasks:
+    - name: Перезаугрзка служб klnagent
+      shell: "systemctl restart klnagent.service"
+
+    - name: Перезаугрзка службы kesl 
+      shell: "systemctl restart kesl.service"

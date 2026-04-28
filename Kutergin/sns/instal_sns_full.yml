@@ -1,0 +1,181 @@
+---
+- name: Синхронизация файлов и установка SNS Linux
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    orchestrator_ip: "192.168.131.8"
+    login_orch: "admin"
+    password_orch: "Gtnheirf18@"
+    rpm_src_path: /home/distribution/szi-for-linux/sns-linux/sns-rpms
+    rpm_dest_path: /home/ansible-ib
+    sns_rpm: sns-8.2-1429.redos7.3.x86_64.rpm
+    sns_manager_rpm: sns-manager-8.2-803.redos7.3.x86_64.rpm
+    sns_license: lic124.lic
+    redos_rpms:
+      - python3-ptyprocess-0.5.2-5.el7.noarch.rpm
+      - python3-pexpect-4.7.0-2.el7.noarch.rpm
+
+  vars_prompt:
+    - name: reboot_after_install
+      prompt: "Перезагружать хосты после установки SNS Linux? (yes/no)"
+      private: no
+
+  tasks:
+
+    - name: Проверяем, установлен ли SNS Linix
+      ansible.builtin.shell: systemctl status sn
+      register: secret_net_status
+      failed_when: false
+      changed_when: false
+
+    - name: Выводим результат проверки SNS Linux
+      ansible.builtin.debug:
+        msg: "SNS Linux: {{ 'установлен' if secret_net_status.rc == 0 else 'не установлен' }}"
+
+    - name: Выполняем действия, если служба SNS НЕ установлена
+      block:
+        - name: Получаем текущую версию ядра
+          ansible.builtin.shell: uname -a
+          register: kernel_version
+
+        - name: Выводим текущую версию ядра
+          ansible.builtin.debug:
+            msg: "Текущее ядро: {{ kernel_version.stdout }}"
+
+        - name: Копируем файл SNS Linux
+          copy:
+            src: "{{ rpm_src_path }}/{{ sns_rpm }}"
+            dest: "{{ rpm_dest_path }}/"
+
+        - name: Копируем лицензию
+          copy:
+            src: "{{ rpm_src_path }}/{{ sns_license }}"
+            dest: "{{ rpm_dest_path }}/"
+
+        - name: Копируем sns-manager
+          copy:
+            src: "{{ rpm_src_path }}/{{ sns_manager_rpm }}"
+            dest: "{{ rpm_dest_path }}/"
+
+        - name: Установка SNS Linux
+          dnf:
+            name: "{{ rpm_dest_path }}/{{ sns_rpm }}"
+            state: present
+            disable_gpg_check: yes
+
+        - name: Установка sns-manager
+          dnf:
+            name: "{{ rpm_dest_path }}/{{ sns_manager_rpm }}"
+            state: present
+            disable_gpg_check: yes
+
+        - name: Перезагружаем хост, если выбран вариант 'yes'
+          ansible.builtin.reboot:
+          when: reboot_after_install | lower == "yes"
+
+        - name: Сообщаем, что хост требует перезагрузки, если выбран вариант 'no'
+          ansible.builtin.debug:
+            msg: "Пакет SNS Linux установлен на хосте {{ inventory_hostname }}. Требуется перезагрузка."
+          when: reboot_after_install | lower == "no"
+
+      #when: secret_net_status.rc != 0
+
+    - name: Ждём, пока появится сокет SNS (до 30 секунд)
+      ansible.builtin.wait_for:
+        path: /opt/securitycode/sns/var/tmp/sn_sock
+        state: present
+        timeout: 30
+        delay: 5
+      when:
+        - secret_net_status.rc != 0
+        - reboot_after_install | lower == "yes"
+
+    - name: Загружаем лицензию SNS Linux
+      ansible.builtin.shell:
+        cmd: sudo /opt/securitycode/sns/bin/snlicensectl -c /home/ansible-ib/lic124.lic
+      register: license_result
+      changed_when: true
+      when:
+        - secret_net_status.rc != 0
+        - reboot_after_install | lower == "yes"
+
+    - name: Выводим результат загрузки лицензии
+      ansible.builtin.debug:
+        msg: "{{ license_result.stdout_lines | regex_replace('\\n', ' ') }}"
+      when:
+        - secret_net_status.rc != 0
+        - reboot_after_install | lower == "yes"
+
+    - name: Проверить наличие python3-pexpect
+      ansible.builtin.command: rpm -q python3-pexpect
+      register: rpm_result
+      failed_when: false
+      changed_when: false
+
+    - name: Статус python3-pexpect 
+      ansible.builtin.debug:
+        msg: "python3-pexpect: {{ 'Установлен' if rpm_result.rc == 0 else 'Не установлен' }}"
+
+    - name: Установить python3-pexpect и зависимости, если не установлен
+      block:
+        - name: Копируем RPM-файлы
+          ansible.builtin.copy:
+            src: "{{ rpm_src_path }}/{{ item }}"
+            dest: "{{ rpm_dest_path }}/"
+          loop: "{{ redos_rpms }}"
+
+        - name: Устанавливаем RPM-файлы через dnf
+          ansible.builtin.command:
+            cmd: "dnf install --disablerepo=* --allowerasing -y {{ rpm_dest_path }}/{{ item }}"
+          loop: "{{ redos_rpms }}"
+          args:
+            warn: false
+      when: rpm_result.rc != 0
+
+    - name: Выполнение snconnctl -s
+      ansible.builtin.command:
+        cmd: /opt/securitycode/sns/bin/snconnctl -s
+      register: snconnctl_output
+      failed_when: false  
+
+    - name: Определить, нужно ли перерегистрировать агент в оркестраторе
+      set_fact:
+        need_reconnect_orch: >-
+          {{
+            ('Нет соединения с Security Code Orchestrator' in snconnctl_output.stdout) or
+            ('Не удалось установить соединение с Security Code Orchestrator' in snconnctl_output.stdout)
+          }}
+      when: snconnctl_output.stdout is not none
+
+    - name: Выполнение команды snconnctl -D после подтверждения
+      expect:
+        command: "sudo /opt/securitycode/sns/bin/snconnctl -D"
+        responses:
+          "логин:": "{{ login_orch }}"
+          "пароль:": "{{ password_orch }}"
+          "Подключиться к существующему объекту?": "y"
+      register: disable_result
+      ignore_errors: yes
+      when: need_reconnect_orch is defined and need_reconnect_orch
+
+    - name: Повторное выполнение команды подключения
+      expect:
+        command: "sudo /opt/securitycode/sns/bin/snconnctl --registration --ip=192.168.131.8"
+        responses:
+          "логин:": "{{ login_orch }}"
+          "пароль:": "{{ password_orch }}"
+          "Подключиться к существующему объекту?": "y"
+          "Сертификат сервера будет добавлен в список доверенных сертификатов. Продолжить? [д/Н]": "y"
+      register: final_registration_result
+      ignore_errors: yes
+      when: need_reconnect_orch is defined and need_reconnect_orch
+
+    - name: Вывод результата подключения оркестратор
+      debug:
+        msg: "{{ final_registration_result.stdout | regex_replace('[\\n\\r]', ' ') | regex_replace('Введите учетные данные администратора безопасности.*?Настройки успешно сохранены', '') | regex_replace('\\+[-\\+]+\\+', '') | regex_replace('\\|', '') | regex_replace('\\s+', ' ') | regex_replace('Название агента:', '') | regex_replace('Описание агента:', '') | trim }}"
+      when: >
+        need_reconnect_orch is defined and
+        need_reconnect_orch and
+        ('Агент уже зарегистрирован' not in (final_registration_result.stdout | default('')))

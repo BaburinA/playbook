@@ -1,0 +1,19 @@
+---
+
+- name: copy_keys
+  hosts: all
+  gather_facts: false
+  become: false
+
+  vars:
+    user: "ansible-ib"
+    path_to_key: /home/ansible-ib/.ssh/id_rsa.pub
+
+  tasks:
+
+    - name: copy_keys
+      ansible.posix.authorized_key:
+        user: "{{ user }}"
+        state: present
+        key: "{{ lookup('file','{{path_to_key}}')}}"
+        exclusive: true

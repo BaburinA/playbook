@@ -1,0 +1,40 @@
+# Подготовка файлов ЖБ ИБ для Zabbix
+---
+- hosts: CCT
+  vars:
+    zabbix_agenter: false
+  become: true
+  gather_facts: False
+  tasks:
+
+    - name: Group add Secure
+      ansible.builtin.shell: sudo chgrp zabbix /var/log/secure
+
+    - name: Chmode Secure
+      ansible.builtin.shell: sudo chmod 640 /var/log/secure
+
+    - name: Wotching zabbix-agent2
+      ansible.builtin.systemd:
+        name: zabbix-agent2.service
+      register: zabbix_agent2
+      ignore_errors: yes
+
+    - name: Wotching zabbix-agentd
+      ansible.builtin.systemd:
+        name: zabbix-agent.service
+      register: zabbix_agent
+      ignore_errors: yes
+
+    - name: ReStart service zabbix-agentd
+      ansible.builtin.service:
+        name: zabbix-agent
+        state: restarted
+      when: zabbix_agent.status.ActiveState=="active"
+      ignore_errors: yes
+
+    - name: ReStart service zabbix-agent2
+      ansible.builtin.service:
+        name: zabbix-agent2
+        state: restarted
+      when: zabbix_agent2.status.ActiveState=="active"
+      ignore_errors: yes

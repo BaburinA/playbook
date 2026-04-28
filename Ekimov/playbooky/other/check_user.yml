@@ -1,0 +1,34 @@
+- name: Проверка и создание пользователя с паролем, установка владельца домашней папки
+  hosts: all
+  become: yes
+  tasks:
+    - name: Проверка существования пользователя ekimov_vi
+      command: "id -u ekimov_vi"
+      register: user_check
+      ignore_errors: yes
+
+    - name: Создание пользователя ekimov_vi, если его нет
+      ansible.builtin.user:
+        name: ekimov_vi
+        comment: "Пользователь ekimov_vi"
+        shell: /bin/bash
+        password: "{{ 'Impossible322&&' | password_hash('sha512') }}"
+        create_home: yes
+      when: user_check.rc != 0
+
+    - name: Установка владельца домашней папки пользователя
+      ansible.builtin.file:
+        path: "/home/ekimov_vi"
+        owner: ekimov_vi
+        group: ekimov_vi
+        recurse: yes
+
+    - name: Вывод сообщения о создании пользователя
+      debug:
+        msg: "Пользователь ekimov_vi был создан и владельцем домашней папки стал он."
+      when: user_check.rc != 0
+
+    - name: Вывод сообщения, если пользователь уже существует
+      debug:
+        msg: "Пользователь ekimov_vi уже существует."
+      when: user_check.rc == 0

@@ -1,0 +1,101 @@
+- name: Обновление Dr.Web
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    way: /home/distribution/drweb/Drweb_13.00.1/2025/
+    way_cert: /home/distribution/szi-for-linux/drweb/
+    packages:
+      work: drweb-workstations_11.1.5-2506051930+fstek-4ud~linux_amd64.run
+      file: drweb-scanning-server_11.1.2-2506051930+fstek-4ud~linux_amd64.run
+    cert: certificate_e0a9c070-56a3-11e9-7191-8444d45ee50b.pem
+    ip: '91.230.91.5:2193'
+    pack: "{{ packages[input] | default('') }}"
+
+  vars_prompt:
+    - name: input
+      prompt: "Какой пакет установить? workstations / file-servers (work/file)"
+      private: no
+
+    - name: input2
+      prompt: "Обновить агента? (y/n)"
+      private: no
+
+  tasks:
+    - name: Ошибка — неверный выбор пакета
+      fail:
+        msg: "Нужно выбрать либо 'work', либо 'file'"
+      when: input not in ['work', 'file']
+
+    - name: Проверка установлен ли KESL
+      shell: kesl-control --app-info | grep Версия
+      register: kesl
+      failed_when: no
+      ignore_errors: yes
+
+    - name: Пропустить хост — обнаружен KESL (конфликт антивирусов)
+      debug:
+        msg: "⚠️ На хосте {{ ansible_hostname }} установлен KESL. Установка/обновление Dr.Web пропущено."
+      when: kesl.rc == 0
+      tags: skip_kesl
+
+    - name: Проверка установлен ли drweb-agent
+      shell: drweb-ctl -v
+      register: check
+      failed_when: no
+      ignore_errors: yes
+      when: kesl.rc != 0
+
+    - name: Копирование установочного файла
+      copy:
+        src: "{{ way }}{{ pack }}"
+        dest: "/home/{{ ansible_user }}/{{ pack }}"
+      become: no
+      when: kesl.rc != 0
+
+    - name: Установка Dr.Web (если не установлен)
+      shell: sh "/home/{{ ansible_user }}/{{ pack }}" -- -n
+      when:
+        - kesl.rc != 0
+        - check.rc != 0
+
+    - name: Обновление Dr.Web (если уже установлен и запрошено обновление)
+      shell: sh "/home/{{ ansible_user }}/{{ pack }}" -- -n
+      when:
+        - kesl.rc != 0
+        - check.rc == 0
+        - input2 == 'y'
+
+    - name: Пропустить настройку подключения — KESL активен
+      meta: end_host
+      when: kesl.rc == 0
+
+    - name: Проверка статуса подключения к серверу
+      shell: drweb-ctl app | grep -E '^(ConfigD|ESAgent|MeshD|Update)'
+      register: check2
+      failed_when: no
+      ignore_errors: yes
+
+    - name: Копирование сертификата
+      copy:
+        src: "{{ way_cert }}{{ cert }}"
+        dest: "/home/{{ ansible_user }}/{{ cert }}"
+      become: no
+      when:
+        - check2.stdout is defined
+        - "'Connected' not in check2.stdout"
+
+    - name: Подключение к серверу Dr.Web
+      shell: drweb-ctl esc {{ ip }} --Certificate "/home/{{ ansible_user }}/{{ cert }}"
+      register: id_agent
+      failed_when: no
+      ignore_errors: yes
+      when:
+        - check2.stdout is defined
+        - "'Connected' not in check2.stdout"
+
+    - name: Вывод результата подключения
+      debug:
+        msg: "{{ id_agent.stdout_lines | default(['Подключение выполнено']) }}"
+      when: id_agent is defined

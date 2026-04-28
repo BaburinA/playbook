@@ -1,0 +1,106 @@
+=========================================
+Хост: 192.168.28.42
+ОС: Debian
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.28.43
+ОС: Debian
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.44
+ОС: Debian
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.45
+ОС: Debian
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.58
+ОС: Astra Linux (Smolensk)
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.59
+ОС: Astra Linux (Smolensk)
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.61
+ОС: Astra Linux (Smolensk)
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.99
+ОС: Astra Linux (Smolensk)
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.28.100
+ОС: Astra Linux (Smolensk)
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.28.101
+ОС: Astra Linux (Smolensk)
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.28.102
+ОС: CentOS
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.28.103
+ОС: CentOS
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.28.104
+ОС: CentOS
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.61.4
+ОС: CentOS
+Dr.Web: Нет
+Kaspersky: Нет
+
+Хост: 192.168.61.2
+ОС: Astra Linux (Smolensk)
+Dr.Web: Нет
+Kaspersky: Да
+
+Хост: 192.168.221.200
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.221.201
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.221.202
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.221.203
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.221.204
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+
+Хост: 192.168.221.205
+ОС: Astra Linux
+Dr.Web: Да
+Kaspersky: Нет
+

@@ -1,0 +1,89 @@
+---
+- name: Установка multifactor
+  hosts: all
+  become: yes
+  gather_facts: no 
+  vars:
+    src: /home/distribution/szi-for-linux/multifactor/
+    dst_home: /home/{{ansible_user}}/multifactor/
+    dst_etc: /etc/
+    files:
+      pam_radius: pam_radius-2.0.0-7.el7.x86_64.rpm
+      multifactor: xrdpstart.sh
+
+  vars_prompt:
+    - name: user_domen
+      prompt: "Ввести доменную учетку: "
+      private: no
+
+    - name: user_no_domen
+      prompt: "Ввести локальную учетку: "
+      private: no 
+
+  tasks:
+    - name: Проверка установки мультифактор
+      shell: ls /etc | grep xrdpstart.shell
+      register: multic_install
+      ignore_errors: yes
+
+    - name: Проверка установки pam_radius
+      shell: rpm -qa | grep pam_radius
+      register: pam_radius_install
+      ignore_errors: yes
+
+    - name: Просмотр группы tsusers
+      shell: cat /etc/group | grep tsusers
+      register: do_user_tsusers
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Прописываем доменную учетку
+      shell: usermod -aG tsusers {{user_domen}}
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Прописываем локальную учетку
+      shell: usermod -aG tsusers {{user_no_domen}}
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Просмотр группы tsusers после изменений
+      shell: cat /etc/group | grep tsusers
+      register: user_tsusers
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Просмотр изменений
+      debug:
+        msg: |
+          Группа tsusers до изменений: {{ do_user_tsusers.stdout | default('группа не найдена') }}
+          Группа tsusers после изменений: {{ user_tsusers.stdout | default('группа не найдена') }}
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+
+    - name: Копирование файлов
+      copy:
+        src: "{{src}}"
+        dest: "{{dst_home}}"
+      become: no 
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Установка зависимостей ({{pam_radius}})
+      dnf:
+        name: 
+          - '{{dst_home}}{{files.pam_radius}}'
+        state: present
+        disable_gpg_check: yes
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: копирование скрипта {{files.multifactor}} в {{dst_etc}}
+      shell: cp {{dst_home}}{{files.multifactor}} {{dst_etc}}
+      register: cp_multifactor
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    - name: Запуск скрпта {{files.multifactor}}
+      shell: sh {{dst_etc}}{{files.multifactor}}
+      when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+    #- name: Перезагрузка системы
+    #  shell: reboot
+    #  when: multic_install.stdout | default('') == '' and pam_radius.stdout | default('') == ''
+
+
+

@@ -1,0 +1,74 @@
+---
+- name: Установка Filebeat (только если не установлен)
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    local_rpm_path: /home/distribution/filebeat-8.14.1-1.el7.x86_64.rpm
+    local_config_path: /home/distribution/filebeat.yml
+
+    remote_base_dir: /home/ansible-ib
+    remote_rpm_path: "{{ remote_base_dir }}/filebeat-8.14.1-1.el7.x86_64.rpm"
+    remote_config_path: "{{ remote_base_dir }}/filebeat.yml"
+    filebeat_config_dest: /etc/filebeat/filebeat.yml
+
+  tasks:
+    - name: Проверить, установлен ли пакет filebeat
+      command: rpm -q filebeat
+      register: filebeat_check
+      ignore_errors: yes
+      changed_when: yes
+
+    - name: Установить переменную filebeat_installed
+      set_fact:
+        filebeat_installed: "{{ filebeat_check.rc == 0 }}"
+
+    - name: Пропустить установку — filebeat уже установлен
+      debug:
+        msg: "Filebeat уже установлен. Все задачи пропущены."
+      when: filebeat_installed
+
+    - name: Скопировать RPM-пакет в /home/ansible-ib/
+      copy:
+        src: "{{ local_rpm_path }}"
+        dest: "{{ remote_rpm_path }}"
+        mode: '0644'
+      when: not filebeat_installed
+
+    - name: Скопировать filebeat.yml в /home/ansible-ib/
+      copy:
+        src: "{{ local_config_path }}"
+        dest: "{{ remote_config_path }}"
+        mode: '0644'
+      when: not filebeat_installed
+
+    - name: Установить filebeat из RPM-пакета
+      yum:
+        name: "{{ remote_rpm_path }}"
+        state: present
+        disable_gpg_check: yes
+      when: not filebeat_installed
+
+    - name: Скопировать конфигурационный файл в /etc/filebeat/
+      copy:
+        src: "{{ remote_config_path }}"
+        dest: "{{ filebeat_config_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: yes
+      notify: restart filebeat
+      when: not filebeat_installed
+
+    - name: Убедиться, что служба filebeat включена и запущена
+      systemd:
+        name: filebeat
+        enabled: yes
+        state: started
+      when: not filebeat_installed
+
+  handlers:
+    - name: restart filebeat
+      systemd:
+        name: filebeat
+        state: restarted

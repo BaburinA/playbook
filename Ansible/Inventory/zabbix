@@ -1,0 +1,4 @@
+ansible_ssh_user=ansible-ib
+[Zab-p]
+192.168.34.102
+192.168.34.103

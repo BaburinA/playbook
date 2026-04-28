@@ -1,0 +1,81 @@
+---
+- name: Синхронизация файлов и установка SNS Linux
+  hosts: all
+  become: yes
+
+  tasks:
+    # 1. Проверяем, установлен ли Secret Net
+    - name: 1. Проверяем, установлен ли SNS Linix
+      ansible.builtin.shell: systemctl status sn
+      register: secret_net_status
+      failed_when: false
+      changed_when: false
+
+    - name: 1.1. Выводим результат проверки SNS Linux
+      ansible.builtin.debug:
+        msg: "SNS Linux: {{ 'установлен' if secret_net_status.rc == 0 else 'не установлен' }}"
+
+    - name: 2. Прерываем выполнение плейбука, если SNS Linux установлен
+      meta: end_play
+      when: secret_net_status.rc == 0
+
+    # 3. Получаем текущую версию ядра
+    - name: 3. Получаем текущую версию ядра
+      ansible.builtin.shell: uname -a
+      register: kernel_version
+
+    - name: 3.1. Выводим текущую версию ядра
+      ansible.builtin.debug:
+        msg: "Текущее ядро: {{ kernel_version.stdout }}"
+
+    # 4. Проверяем, соответствует ли версия ядра требуемой
+    - name: 4. Проверяем, соответствует ли версия ядра требуемой
+      ansible.builtin.set_fact:
+        kernel_supported: "{{ '6.1.110-1.el7.3.x86_64' in kernel_version.stdout }}"
+
+    # 5. Копируем файлы Secret Net, если ядро поддерживаемое
+    - name: 5. Копируем файлы SNS Linux и лицензию
+      ansible.builtin.copy:
+        src: /home/distribution/szi-for-linux/sns-linux/
+        dest: /home/ansible-ib/
+        remote_src: no
+      when: kernel_supported
+
+    # 6. Устанавливаем пакет Secret Net с помощью dnf
+    - name: 6. Устанавливаем пакет SNS Linux через dnf
+      ansible.builtin.command:
+        cmd: dnf install -y /home/ansible-ib/sns-8.0-1030.redos7.3.x86_64.rpm
+      when: kernel_supported
+
+    # 7. Спрашиваем, перезагружать ли хост
+    - name: 7. Спрашиваем, перезагружать ли хост
+      ansible.builtin.pause:
+        prompt: "Хотите ли вы перезагрузить систему? (yes/no)"
+      register: reboot_answer
+
+    # 8. Перезагружаем хост, если ответ "yes"
+    - name: 8. Перезагружаем хост, если ответ 'yes'
+      ansible.builtin.reboot:
+      when: reboot_answer.user_input | replace('\r', '') == "yes"
+
+    # 9. Сообщаем, что хост требует перезагрузки, если ответ был "no"
+    - name: 9. Сообщаем, что хост требует перезагрузки, если ответ был "no"
+      ansible.builtin.debug:
+        msg: "Пакет SNS Linux установлен на хосте {{ inventory_hostname }}. Требуется перезагрузка."
+      when: reboot_answer.user_input | replace('\r', '') == "no"
+
+    # 10. Загружаем лицензию Secret Net после перезагрузки
+    - name: 10. Загружаем лицензию SNS Linux
+      ansible.builtin.shell:
+        cmd: sudo /opt/securitycode/sns/bin/snlicensectl -c /home/ansible-ib/lic124.lic
+      register: license_result
+      changed_when: true
+      when: reboot_answer.user_input == "yes"
+
+    - name: 10.1. Выводим результат загрузки лицензии
+      ansible.builtin.debug:
+        msg: "{{ license_result.stdout_lines | regex_replace('\\n', ' ') }}"
+      when: reboot_answer.user_input == "yes"
+
+
+

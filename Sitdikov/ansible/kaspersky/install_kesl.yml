@@ -1,0 +1,58 @@
+---
+- name: Установка Kaspersky
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    way: /home/distribution/szi-for-linux/KESL/
+    way2: /home/{{ansible_user}}/KESL/
+    files:
+      klnagent: klnagent64-15.1.0-20748.x86_64.rpm
+      kesl: kesl-12.2.0-2412.x86_64.rpm
+      kesl_gui: kesl-gui-12.2.0-2412.x86_64.rpm
+      conf1: autoanswers.txt
+      conf2: autoinstall.ini
+    input2: no # Настроить kesl
+
+  tasks:
+    - name: Проверка установлен ли drweb-agent
+      raw: "! drweb-ctl -v"
+
+    - name: Копирование папки KESl
+      copy:
+        src: "{{way}}"
+        dest: "{{way2}}"
+      become: no
+
+    - name: Установка {{files.klnagent}} {{files.kesl}} {{files.kesl_gui}}
+      dnf:
+        name:
+          - '{{way2}}{{files.klnagent}}'
+          - '{{way2}}{{files.kesl}}'
+          - '{{way2}}{{files.kesl_gui}}'
+        state: present
+        disable_gpg_check: yes
+
+    - name: Настройка klnagent64
+      shell: "KLAUTOANSWERS={{way2}}{{files.conf1}} /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl"
+      register: res1
+
+    - name: Перезагрузка службы klnagent64
+      service:
+        name: klnagent64
+        state: restarted
+
+    - name: Настройка kesl
+      command: "/opt/kaspersky/kesl/bin/kesl-setup.pl --autoinstall={{way2}}{{files.conf2}}"
+      register: res2
+      when: input2
+
+    - name: Результат настройки klnagent64
+      debug:
+        msg: "{{res1.stdout.split('\n')}}"
+
+    - name: Результат настройки kesl
+      debug:
+        msg: "{{res2.stdout.split('\n')}}"
+      when: input2
+

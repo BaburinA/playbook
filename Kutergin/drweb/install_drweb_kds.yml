@@ -1,0 +1,92 @@
+---
+- name: Установка Dr.Web
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    way: /home/distribution/szi-for-linux/drweb/
+    packages:
+      work: drweb-workstations_11.1.4-2307031224+fstek-4ud~linux_amd64.run
+      file: drweb-file-servers_11.1.4-2307031224+fstek-4ud~linux_amd64.run
+    cert: certificate_e0a9c070-56a3-11e9-7191-8444d45ee50b.pem
+    ip: '91.230.91.5:2193'
+    pack: "{{ packages[input] | default('') }}"
+
+  vars_prompt:
+    - name: input
+      prompt: "Какой пакет установить? workstations / file-servers (work/file)"
+      private: no
+
+  tasks:
+    - name: Ошибка — неверный выбор пакета
+      fail:
+        msg: "Нужно выбрать либо 'work', либо 'file'"
+      when: input not in ['work', 'file']
+
+    - name: Проверка установлен ли KESL
+      shell: kesl-control --app-info | grep Версия
+      register: kesl
+      failed_when: no
+      ignore_errors: yes
+
+    - name: Проверка установлен ли drweb-agent
+      shell: drweb-ctl -v
+      register: check
+      failed_when: no
+      ignore_errors: yes
+
+ #   - name: Отладочная информация (безопасное обращение к stdout)
+ #     debug:
+ #       msg: |
+ #         drweb-ctl -v output: {{ check.stdout if check is defined else 'Не установлен' }}
+ #         kesl-control output: {{ kesl.stdout | replace(' ', '') if kesl is defined else 'Не установлен' }}
+
+    - name: Копирование установочного файла
+      copy:
+        src: "{{ way }}{{ pack }}"
+        dest: "/home/{{ ansible_user }}/"
+      become: no
+      when:
+        - check.rc != 0
+        - kesl.rc != 0
+
+    - name: Установка Dr.Web
+      shell: sh /home/{{ ansible_user }}/{{ pack }} -- -n
+      when:
+        - check.rc != 0
+        - kesl.rc != 0
+
+    - name: Проверка статуса подключения к серверу
+      shell: drweb-ctl app | grep -E '^(ConfigD|ESAgent|MeshD|Update)'
+      register: check2
+      failed_when: no
+      ignore_errors: yes
+
+#    - name: Отладка состояния подключения
+#      debug:
+#        msg: "{{ check2.stdout_lines | default([]) }}"
+
+    - name: Копирование сертификата
+      copy:
+        src: "{{ way }}{{ cert }}"
+        dest: "/home/{{ ansible_user }}/"
+      become: no
+      when:
+        - check2 is defined
+        - check2.stdout is not match('Connected')
+        - check2.rc == 0
+
+    - name: Подключение к серверу Dr.Web
+      shell: drweb-ctl esc {{ ip }} --Certificate /home/{{ ansible_user }}/{{ cert }}
+      register: id_agent
+      failed_when: no
+      ignore_errors: yes
+      when:
+        - check2 is defined
+        - check2.stdout is not match('Connected')
+        - check2.rc == 0
+
+    - name: Вывод результата подключения
+      debug:
+        msg: "{{ id_agent.stdout_lines | default([]) }}"
