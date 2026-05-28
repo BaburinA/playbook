@@ -1,0 +1,322 @@
+---
+- name: Harden RED OS 8 according to security recommendations
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # Флаги для параметров, влияющих на производительность или совместимость
+    # Установите в true, если ваше окружение требует максимальной защиты и вы готовы принять последствия
+    redos_enable_init_on_alloc: false          # 2.4.3: Снижение производительности на 1-7%
+    redos_enable_slab_nomerge: false           # 2.4.4: Увеличивает фрагментацию памяти
+    redos_enable_iommu_strict: false           # 2.4.5: Может повлиять на драйверы устройств
+    redos_enable_randomize_kstack: true        # 2.4.6: Минорное влияние (<1%)
+    redos_enable_vsyscall_none: false          # 2.5.1: Может сломать старые контейнеры/Docker (CentOS 6)
+    redos_enable_debugfs_nomount: false        # 2.5.3: Отключает отладочные утилиты
+    redos_enable_tsx_off: true                 # 2.5.9: По умолчанию отключено в ядре
+    redos_enable_perf_paranoid_3: false        # 2.5.2: Может потребовать отладки (Perf)
+    redos_disable_kexec: false                 # 2.5.4: Отключает kdump
+    redos_disable_user_namespaces: false       # 2.5.5: Сломает Docker, браузеры, sandbox
+    redos_enable_tty_ldisc_autoload_0: false   # 2.5.8: Требует оценки использования модулей
+    redos_disable_ptrace: false                # 2.6.1: Полностью отключает ptrace (нельзя вернуть обратно)
+    redos_enable_fifos_regular_2: false        # 2.6.4, 2.6.5: Расширяет защиту на группы директорий
+
+  tasks:
+    # ==========================================
+    # 2.1. Настройка авторизации
+    # ==========================================
+    - name: "2.1.1 Lock accounts with empty passwords"
+      ansible.builtin.shell: |
+        for user in $(awk -F: '($2 == "" || $2 == "!" || $2 == "!!") {print $1}' /etc/shadow 2>/dev/null); do
+          passwd -l "$user" 2>/dev/null
+        done
+      changed_when: false
+      failed_when: false
+      tags: [auth, 2.1.1]
+
+    - name: "2.1.2 Disable SSH root login"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config.d/01-permitrootlogin.conf
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+        create: yes
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart sshd
+      tags: [auth, ssh, 2.1.2]
+
+    # ==========================================
+    # 2.2. Ограничение механизмов получения привилегий
+    # ==========================================
+    - name: "2.2.1 Enable pam_wheel.so for su command"
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/su
+        regexp: "^#\\s*auth\\s+required\\s+pam_wheel.so\\s+use_uid"
+        line: "auth    required        pam_wheel.so use_uid"
+        backrefs: yes
+      tags: [privilege, 2.2.1]
+
+    # Примечание 2.2.2: Sudo по умолчанию ограничен группой wheel и /etc/sudoers.d/.
+    # Дополнительных изменений не требуется, рекомендуется регулярно аудировать sudoers.
+
+    # ==========================================
+    # 2.3. Настройка прав доступа к объектам файловой системы
+    # ==========================================
+    - name: "2.3.1 Set correct permissions for /etc/passwd, /etc/group, /etc/shadow"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+        owner: root
+        group: root
+        state: file
+      loop:
+        - { path: "/etc/passwd", mode: "0644" }
+        - { path: "/etc/group", mode: "0644" }
+        - { path: "/etc/shadow", mode: "0000" }
+      tags: [permissions, 2.3.1]
+
+    - name: "2.3.6 Set correct permissions for system cron files"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "go-wx"
+        state: "{{ 'directory' if item is directory else 'file' }}"
+      loop:
+        - /etc/crontab
+        - /etc/cron.d
+        - /etc/cron.hourly
+        - /etc/cron.daily
+        - /etc/cron.weekly
+        - /etc/cron.monthly
+      tags: [permissions, cron, 2.3.6]
+
+    - name: "2.3.11 Set correct permissions for user home directories"
+      ansible.builtin.command: "find /home -maxdepth 1 -mindepth 1 -type d -exec chmod 700 {} +"
+      changed_when: false
+      tags: [permissions, 2.3.11]
+
+    # Примечание по 2.3.2-2.3.5, 2.3.7-2.3.10:
+    # Динамические права (запущенные процессы, SUID/SGID, файлы cron пользователей, библиотеки)
+    # рекомендуется применять выборочно после аудита. Автоматическая рекурсивная смена прав
+    # может нарушить работу приложений. Для ручного применения используйте команды из инструкции.
+
+    # ==========================================
+    # 2.4. Настройка механизмов защиты ядра Linux
+    # ==========================================
+    - name: "2.4.1 Restrict dmesg access for users"
+      ansible.builtin.sysctl:
+        name: kernel.dmesg_restrict
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.4.1]
+
+    - name: "2.4.2 Replace kernel addresses in /proc with 0"
+      ansible.builtin.sysctl:
+        name: kernel.kptr_restrict
+        value: '2'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.4.2]
+
+    - name: "2.4.3 Initialize memory with 0 on allocation"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='init_on_alloc=1'"
+      when: redos_enable_init_on_alloc | bool
+      changed_when: false
+      tags: [kernel, grub, 2.4.3]
+
+    - name: "2.4.4 Disable kernel allocator cache merging"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='slab_nomerge'"
+      when: redos_enable_slab_nomerge | bool
+      changed_when: false
+      tags: [kernel, grub, 2.4.4]
+
+    - name: "2.4.5 Initialize IOMMU mechanism"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='iommu=force iommu.strict=1 iommu.passthrough=0'"
+      when: redos_enable_iommu_strict | bool
+      changed_when: false
+      tags: [kernel, grub, 2.4.5]
+
+    - name: "2.4.6 Randomize kernel stack location"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='randomize_kstack_offset=1'"
+      when: redos_enable_randomize_kstack | bool
+      changed_when: false
+      tags: [kernel, grub, 2.4.6]
+
+    - name: "2.4.7 Enable CPU hardware vulnerability mitigations"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='mitigations=auto,nosmt'"
+      changed_when: false
+      tags: [kernel, grub, 2.4.7]
+
+    - name: "2.4.8 Enable eBPF subsystem protection"
+      ansible.builtin.sysctl:
+        name: net.core.bpf_jit_harden
+        value: '2'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.4.8]
+
+    # ==========================================
+    # 2.5. Уменьшение периметра атаки ядра Linux
+    # ==========================================
+    - name: "2.5.1 Disable legacy vsyscall interface"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='vsyscall=none'"
+      when: redos_enable_vsyscall_none | bool
+      changed_when: false
+      tags: [kernel, grub, 2.5.1]
+
+    - name: "2.5.2 Restrict access to performance events"
+      ansible.builtin.sysctl:
+        name: kernel.perf_event_paranoid
+        value: '3'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: redos_enable_perf_paranoid_3 | bool
+      tags: [kernel, sysctl, 2.5.2]
+
+    - name: "2.5.3 Disable debugfs virtual filesystem mounting"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='debugfs=no-mount'"
+      when: redos_enable_debugfs_nomount | bool
+      changed_when: false
+      tags: [kernel, grub, 2.5.3]
+
+    - name: "2.5.4 Disable kexec_load syscall"
+      ansible.builtin.sysctl:
+        name: kernel.kexec_load_disabled
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: redos_disable_kexec | bool
+      tags: [kernel, sysctl, 2.5.4]
+
+    - name: "2.5.5 Restrict user namespaces usage"
+      ansible.builtin.sysctl:
+        name: user.max_user_namespaces
+        value: '0'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: redos_disable_user_namespaces | bool
+      tags: [kernel, sysctl, 2.5.5]
+
+    - name: "2.5.6 Disable unprivileged BPF syscall"
+      ansible.builtin.sysctl:
+        name: kernel.unprivileged_bpf_disabled
+        value: '2'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.5.6]
+
+    - name: "2.5.7 Disable unprivileged userfaultfd syscall"
+      ansible.builtin.sysctl:
+        name: vm.unprivileged_userfaultfd
+        value: '0'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.5.7]
+
+    - name: "2.5.8 Disable automatic loading of TTY Line Discipline modules"
+      ansible.builtin.sysctl:
+        name: dev.tty.ldisc_autoload
+        value: '0'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: redos_enable_tty_ldisc_autoload_0 | bool
+      tags: [kernel, sysctl, 2.5.8]
+
+    - name: "2.5.9 Disable TSX technology"
+      ansible.builtin.command: "grubby --update-kernel=ALL --args='tsx=off'"
+      when: redos_enable_tsx_off | bool
+      changed_when: false
+      tags: [kernel, grub, 2.5.9]
+
+    - name: "2.5.10 Set minimum mmap virtual address"
+      ansible.builtin.sysctl:
+        name: vm.mmap_min_addr
+        value: '4096'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.5.10]
+
+    - name: "2.5.11 Enable address space randomization"
+      ansible.builtin.sysctl:
+        name: kernel.randomize_va_space
+        value: '2'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.5.11]
+
+    # ==========================================
+    # 2.6. Настройка средств защиты пользовательского пространства
+    # ==========================================
+    - name: "2.6.1 Disable ptrace attachment to other processes"
+      ansible.builtin.sysctl:
+        name: kernel.yama.ptrace_scope
+        value: '3'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: redos_disable_ptrace | bool
+      tags: [kernel, sysctl, 2.6.1]
+
+    - name: "2.6.2 Restrict unsafe symlink following"
+      ansible.builtin.sysctl:
+        name: fs.protected_symlinks
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.6.2]
+
+    - name: "2.6.3 Restrict unsafe hardlink usage"
+      ansible.builtin.sysctl:
+        name: fs.protected_hardlinks
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.6.3]
+
+    - name: "2.6.4 Enable protection against unintentional FIFO writes"
+      ansible.builtin.sysctl:
+        name: fs.protected_fifos
+        value: "{{ 2 if redos_enable_fifos_regular_2 | bool else 1 }}"
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.6.4]
+
+    - name: "2.6.5 Enable protection against unintentional file writes"
+      ansible.builtin.sysctl:
+        name: fs.protected_regular
+        value: "{{ 2 if redos_enable_fifos_regular_2 | bool else 1 }}"
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.6.5]
+
+    - name: "2.6.6 Disable core dump creation for SUID executables"
+      ansible.builtin.sysctl:
+        name: fs.suid_dumpable
+        value: '0'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [kernel, sysctl, 2.6.6]
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.systemd:
+        name: sshd
+        state: restarted
+        enabled: yes
