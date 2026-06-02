@@ -1,0 +1,53 @@
+---
+- name: Rollback RED OS Hardening
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    backup_dir: /var/backups/redos_hardening
+
+  tasks:
+    - name: Find latest backup archive
+      ansible.builtin.find:
+        paths: "{{ backup_dir }}"
+        patterns: "redos_backup_*.tar.gz"
+        file_type: file
+      register: backup_files
+
+    - name: Fail if no backup found
+      ansible.builtin.fail:
+        msg: "❌ Бэкап не найден в {{ backup_dir }}. Откат невозможен."
+      when: backup_files.matched == 0
+
+    - name: Set latest backup path
+      ansible.builtin.set_fact:
+        latest_backup: "{{ (backup_files.files | sort(attribute='mtime', reverse=true))[0].path }}"
+
+    - name: Restore critical configs from backup
+      ansible.builtin.unarchive:
+        src: "{{ latest_backup }}"
+        dest: /
+        remote_src: yes
+        owner: root
+        group: root
+      register: restore_result
+
+    - name: Reload sysctl after restore
+      ansible.builtin.shell: sysctl -p /etc/sysctl.conf
+      changed_when: false
+      failed_when: false
+
+    - name: Restart SSH service
+      ansible.builtin.systemd:
+        name: sshd
+        state: restarted
+      failed_when: false
+
+    - name: Display rollback completion
+      ansible.builtin.debug:
+        msg: |
+          ✅ Откат выполнен из архива: {{ latest_backup }}
+          ⚠️  Параметры ядра GRUB (grubby) требуют ручного удаления аргументов:
+             grubby --update-kernel=ALL --remove-args="init_on_alloc slab_nomerge iommu randomize_kstack_offset mitigations vsyscall debugfs tsx"
+          📋 Проверьте состояние: sudo check-fstek
+      tags: [rollback]

@@ -1,0 +1,45 @@
+---
+# Бэкап для методик ФСТЭК
+- name: Harden RED OS 7-8 according to security recommendations
+  hosts: IT
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    # ==========================================
+    # АВТОМАТИЧЕСКИЙ БЭКАП ПЕРЕД ИЗМЕНЕНИЯМИ
+    # ==========================================
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: /var/backups/redos_hardening
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+
+    - name: Generate backup timestamp
+      ansible.builtin.shell: date +%Y%m%d_%H%M%S
+      register: _backup_ts
+      changed_when: false
+
+    - name: Create pre-hardening backup archive
+      ansible.builtin.shell: >
+        tar -czf /var/backups/redos_hardening/redos_backup_{{ _backup_ts.stdout }}.tar.gz
+        -C / etc/ssh/sshd_config.d etc/pam.d/su etc/sysctl.conf etc/sysctl.d
+        etc/crontab etc/cron.d etc/cron.hourly etc/cron.daily etc/cron.weekly etc/cron.monthly
+      args:
+        creates: "/var/backups/redos_hardening/redos_backup_{{ _backup_ts.stdout }}.tar.gz"
+      register: backup_result
+      changed_when: backup_result.rc == 0
+
+    - name: Verify backup integrity
+      ansible.builtin.shell: "tar -tzf /var/backups/redos_hardening/redos_backup_{{ _backup_ts.stdout }}.tar.gz | wc -l"
+      register: backup_verify
+      changed_when: false
+      failed_when: backup_verify.stdout | int < 10
+      tags: [backup, prep]
+
+    - name: Register backup path for logging
+      ansible.builtin.set_fact:
+        backup_file: "/var/backups/redos_hardening/redos_backup_{{ _backup_ts.stdout }}.tar.gz"
+      tags: [backup, prep]
