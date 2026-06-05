@@ -1,5 +1,5 @@
 #!/bin/bash
 
-sudo systemctl start httpd
-sudo systemctl start dhcpd
-sudo systemctl start tftp
+sudo systemctl enable httpd --now
+sudo systemctl enable dhcpd --now
+sudo systemctl enable tftp --now

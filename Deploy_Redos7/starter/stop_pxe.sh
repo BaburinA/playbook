@@ -1,5 +1,5 @@
 #!/bin/bash
 
-sudo systemctl stop httpd
-sudo systemctl stop dhcpd
-sudo systemctl stop tftp.socket
+sudo systemctl disable httpd --now
+sudo systemctl disable dhcpd --now
+sudo systemctl disable tftp.socket --now
