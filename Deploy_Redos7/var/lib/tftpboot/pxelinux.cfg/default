@@ -1,0 +1,12 @@
+default menu.c32
+PROMPT 0
+TIMEOUT 150
+MENU TITLE PXE Menu
+LABEL REDOS 7.3 
+MENU LABEL REDOS 7.3 
+KERNEL images/REDOS/images/pxeboot/vmlinuz
+APPEND initrd=images/REDOS/images/pxeboot/initrd.img ramdisk_size=128000 ip=dhcp method=http://192.168.0.244/images/REDOS/ devfs=nomount inst.ks=http://192.168.0.244/ks/ks.cfg
+LABEL REDOS 8
+MENU LABEL REDOS 8 
+KERNEL images/REDOS8/images/pxeboot/vmlinuz
+APPEND initrd=images/REDOS8/images/pxeboot/initrd.img ramdisk_size=128000 ip=dhcp method=http://192.168.0.244/images/REDOS8/ devfs=nomount inst.ks=http://192.168.0.244/ks/ks8.cfg
