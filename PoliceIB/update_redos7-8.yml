@@ -1,0 +1,67 @@
+---
+- name: Safely update RHEL 7 & 8 (or Red OS) systems
+  hosts: NoIT
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # Set to 'yes' to allow automatic reboots if a kernel update is detected
+    allow_reboot: yes
+    # Maximum time in seconds to wait for the server to come back online after reboot
+    reboot_timeout: 600
+
+  tasks:
+    - name: Update all packages to the latest version
+      ansible.builtin.package:
+        name: "*"
+        state: latest
+        update_cache: yes
+      register: update_result
+      tags:
+        - update
+
+    - name: Clean up package manager cache to free disk space
+      ansible.builtin.shell: "{{ ansible_pkg_mgr }} clean all"
+      changed_when: false
+      tags:
+        - update
+        - cleanup
+
+    - name: Check if the running kernel matches the latest installed kernel
+      ansible.builtin.shell: |
+        latest_kernel=$(rpm -q kernel --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null | sort -V | tail -n 1)
+        running_kernel=$(uname -r)
+        if [ -z "$latest_kernel" ]; then
+          echo "no_reboot"
+        elif [ "$latest_kernel" != "$running_kernel" ]; then
+          echo "reboot_required"
+        else
+          echo "no_reboot"
+        fi
+      register: kernel_check
+      changed_when: false
+      failed_when: false
+      tags:
+        - update
+        - reboot
+
+    - name: Set fact if reboot is required
+      ansible.builtin.set_fact:
+        reboot_required: true
+      when: 
+        - "'reboot_required' in kernel_check.stdout"
+        - update_result.changed
+
+    - name: Reboot the system if a kernel update was applied and allowed
+      ansible.builtin.reboot:
+        msg: "Rebooting system due to kernel/package updates"
+        connect_timeout: 5
+        reboot_timeout: "{{ reboot_timeout }}"
+        pre_reboot_delay: 15
+        post_reboot_delay: 30
+        test_command: uptime
+      when: 
+        - allow_reboot | bool
+        - reboot_required | default(false)
+      tags:
+        - reboot

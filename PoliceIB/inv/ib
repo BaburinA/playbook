@@ -6,5 +6,8 @@ ansible_python_interpreter=/usr/bin/python3
 [IT]
 baburin ansible_host=192.168.0.244
 
+[NoIT]
+192.168.0.210 ansible_host=192.168.0.210 ansible_user=operatores
+
 [local]
 localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
