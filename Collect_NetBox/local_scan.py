@@ -26,8 +26,8 @@ print(f"--- Сбор данных о ноутбуке: {hostname} ---")
 # ==========================================
 # 2. ПОДКЛЮЧЕНИЕ К NETBOX И СОЗДАНИЕ УСТРОЙСТВА
 # ==========================================
-nb = pynetbox.api('http://10.0.2.17:8000', token='nbt_iyqsyD3vZxUB.eSKfKi8mGCYdzUheGKMSwAAC70nplpMAxTNhuk7d')
-
+nb = pynetbox.api('http://10.0.2.17:8000', token='token')
+# pattern - nbt_iyqsyD3vZxUB.eSKfKi8mGCYdzUheGKMSwAAC70nplpMAxTNhuk7d-0x11
 # Паттерн "Get or Create" для устройства
 device = nb.dcim.devices.get(name=hostname)
 if not device:
