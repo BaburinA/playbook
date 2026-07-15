@@ -1,0 +1,43 @@
+#!/bin/bash
+INTERFACE="$1"
+ACTION="$2"
+
+# Логируем для отладки
+logger -t vpn-routes "INTERFACE=$INTERFACE ACTION=$ACTION"
+
+# Реагируем на поднятие ppp-интерфейса (L2TP) или vpn-up
+if [ "$ACTION" = "up" ] && [[ "$INTERFACE" == ppp* ]]; then
+    sleep 3
+    logger -t vpn-routes "Adding routes for $INTERFACE"
+    
+    ip route add 192.168.0.1/32 dev "$INTERFACE" 2>/dev/null || true
+    ip route add 192.168.0.10/32 dev "$INTERFACE" 2>/dev/null || true
+    ip route add 192.168.0.254/32 dev "$INTERFACE" 2>/dev/null || true
+    ip route add 10.0.1.10/32 dev "$INTERFACE" 2>/dev/null || true
+    ip route add 10.0.1.40/32 dev "$INTERFACE" 2>/dev/null || true
+    ip route add 10.0.2.0/24 dev "$INTERFACE" 2>/dev/null || true
+fi
+
+# Альтернативное событие vpn-up
+if [ "$ACTION" = "vpn-up" ]; then
+    sleep 3
+    logger -t vpn-routes "VPN-UP event, adding routes via ppp0"
+    
+    ip route add 192.168.0.1/32 dev ppp0 2>/dev/null || true
+    ip route add 192.168.0.10/32 dev ppp0 2>/dev/null || true
+    ip route add 192.168.0.254/32 dev ppp0 2>/dev/null || true
+    ip route add 10.0.1.10/32 dev ppp0 2>/dev/null || true
+    ip route add 10.0.1.40/32 dev ppp0 2>/dev/null || true
+    ip route add 10.0.2.0/24 dev ppp0 2>/dev/null || true
+fi
+
+# Удаление маршрутов при отключении
+if [ "$ACTION" = "down" ] && [[ "$INTERFACE" == ppp* ]]; then
+    logger -t vpn-routes "Removing routes for $INTERFACE"
+    ip route del 192.168.0.1/32 2>/dev/null || true
+    ip route del 192.168.0.10/32 2>/dev/null || true
+    ip route del 192.168.0.254/32 2>/dev/null || true
+    ip route del 10.0.1.10/32 2>/dev/null || true
+    ip route del 10.0.1.40/32 2>/dev/null || true
+    ip route del 10.0.2.0/24 2>/dev/null || true
+fi

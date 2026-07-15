@@ -1,0 +1,273 @@
+---
+- name: Sync Linux servers to NetBox
+  hosts: virtual_machines
+  become: yes
+  gather_facts: yes
+
+  vars:
+    netbox_url: "http://10.0.2.17:8000"
+    netbox_token: "nbt_iyqsyD3vZxUB.eSKfKi8mGCYdzUheGKMSwAAC70nplpMAxTNhuk7d"
+    
+    nb_site: "it-opt18"
+    nb_role: "Virtual machines"
+    nb_device_type: "red-virt"
+    nb_manufacturer: "Generic"
+
+    # Маппинг "шаблон имени интерфейса → роль IP"
+    ip_role_map:
+      - pattern: "^docker"
+        role: "secondary"
+      - pattern: "^br-"
+        role: "secondary"
+      - pattern: "^veth"
+        role: "secondary"
+      - pattern: "^virbr"
+        role: "secondary"
+      - pattern: "^lo$"
+        role: "loopback"
+      # Ethernet (все типы имён) — основной IP, роль не ставим
+      - pattern: "^(ens|enp|eno|eth)"    # Группировка через ()
+        role: "primary"
+      # Wi-Fi — тоже основной
+      - pattern: "^wl"
+        role: "primary"
+
+  tasks:
+    # 0. Создание производителя
+    - name: Create manufacturer if not exists
+      netbox.netbox.netbox_manufacturer:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          name: "{{ nb_manufacturer }}"
+          slug: "{{ nb_manufacturer | lower | replace(' ', '-') }}"
+        state: present
+      delegate_to: localhost
+
+    # 0.1. Создание типа устройства
+    - name: Create device type if not exists
+      netbox.netbox.netbox_device_type:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          model: "Red Soft Server"
+          slug: "{{ nb_device_type }}"
+          manufacturer: "{{ nb_manufacturer }}"
+          u_height: 1
+        state: present
+      delegate_to: localhost
+
+    # 1. Создание или обновление устройства
+    - name: Create or update Device in NetBox
+      netbox.netbox.netbox_device:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          name: "{{ ansible_facts['nodename'] }}"
+          device_type: "{{ nb_device_type }}"
+          device_role: "{{ nb_role }}"
+          site: "{{ nb_site }}"
+          serial: "{{ ansible_facts['product_serial'] | default('Unknown') }}"
+          comments: |
+            Модель: {{ ansible_facts['product_name'] | default('Unknown') }}
+            ОС: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+            Собрано автоматически через Ansible.
+        state: present
+      delegate_to: localhost
+
+    # 2. Создание интерфейсов
+    - name: Create Interfaces in NetBox
+      netbox.netbox.netbox_device_interface:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          device: "{{ ansible_facts['nodename'] }}"
+          name: "{{ item }}"
+          type: "{{ 'ieee802.11n' if item.startswith('wl') else '1000base-t' }}"
+          enabled: true
+        state: present
+      loop: "{{ ansible_facts['interfaces'] }}"
+      when: item != 'lo'
+      delegate_to: localhost
+
+    # 3. Конвертация маски сети в CIDR через Python
+    - name: Convert netmask to CIDR prefix using Python
+      command: python3 -c "import ipaddress; print(ipaddress.IPv4Network('0.0.0.0/{{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['netmask'] }}').prefixlen)"
+      register: prefix_result
+      loop: "{{ ansible_facts['interfaces'] }}"
+      when: 
+        - item != 'lo'
+        - hostvars[inventory_hostname]['ansible_' + item] is defined
+        - hostvars[inventory_hostname]['ansible_' + item]['ipv4'] is defined
+      delegate_to: localhost
+
+    # 4. ОПРЕДЕЛЕНИЕ РОЛЕЙ IP (отдельная задача для отладки)
+    - name: Determine IP role for each interface
+      set_fact:
+        ip_role_for_{{ item.item | replace('-', '_') }}: >-
+          {%- if item.item is match('^docker') -%}secondary
+          {%- elif item.item is match('^br-') -%}secondary
+          {%- elif item.item is match('^veth') -%}secondary
+          {%- elif item.item is match('^virbr') -%}secondary
+          {%- elif item.item is match('^lo$') -%}loopback
+          {%- else -%}
+          {%- endif -%}
+      loop: "{{ prefix_result.results }}"
+      when: 
+        - item is not skipped
+        - item.stdout is defined
+      delegate_to: localhost
+
+    # 5. ПРОВЕРКА: выводим определённые роли
+    - name: Debug - show determined IP roles
+      debug:
+        msg: "Interface: {{ item.item }}, IP: {{ hostvars[inventory_hostname]['ansible_' + item.item]['ipv4']['address'] }}/{{ item.stdout }}, Role: {{ hostvars[inventory_hostname]['ip_role_for_' + (item.item | replace('-', '_'))] | default('none') }}"
+      loop: "{{ prefix_result.results }}"
+      when: 
+        - item is not skipped
+        - item.stdout is defined
+      delegate_to: localhost
+
+    # 6. Проверка существования IP перед созданием
+    - name: Check if IP address already exists in NetBox
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/?address={{ hostvars[inventory_hostname]['ansible_' + item.item]['ipv4']['address'] }}/{{ item.stdout }}"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Accept: application/json
+        status_code: 200
+      register: ip_check
+      loop: "{{ prefix_result.results }}"
+      loop_control:
+        label: "{{ item.item | default('skipped') }}"
+      when: 
+        - item is not skipped
+        - item.stdout is defined
+      delegate_to: localhost
+
+    # 7. Создание IP-адресов (без роли)
+    - name: Create IP Addresses if not exists
+      netbox.netbox.netbox_ip_address:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          address: "{{ hostvars[inventory_hostname]['ansible_' + ip_check.results[idx].item.item]['ipv4']['address'] }}/{{ ip_check.results[idx].item.stdout }}"
+          assigned_object:
+            device: "{{ ansible_facts['nodename'] }}"
+            name: "{{ ip_check.results[idx].item.item }}"
+          status: active
+        state: present
+      loop: "{{ ip_check.results }}"
+      loop_control:
+        index_var: idx
+        label: "{{ ip_check.results[idx].item.item | default('skipped') }}"
+      when: 
+        - ip_check.results[idx] is not skipped
+        - ip_check.results[idx].json.count == 0
+      delegate_to: localhost
+
+    # 8. Повторная проверка IP для получения ID
+    - name: Re-check IP addresses to get their IDs
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/?address={{ hostvars[inventory_hostname]['ansible_' + item.item]['ipv4']['address'] }}/{{ item.stdout }}"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Accept: application/json
+        status_code: 200
+      register: ip_final_check
+      loop: "{{ prefix_result.results }}"
+      loop_control:
+        label: "{{ item.item | default('skipped') }}"
+      when: 
+        - item is not skipped
+        - item.stdout is defined
+      delegate_to: localhost
+
+    # 9. Назначение роли через PATCH (исправленная логика)
+    - name: Assign role to IP addresses via PATCH
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/{{ ip_final_check.results[idx].json.results[0].id }}/"
+        method: PATCH
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Content-Type: application/json
+          Accept: application/json
+        body_format: json
+        body:
+          role: "{{ hostvars[inventory_hostname]['ip_role_for_' + (ip_final_check.results[idx].item.item | replace('-', '_'))] | default('') }}"
+        status_code:
+          - 200
+      loop: "{{ ip_final_check.results }}"
+      loop_control:
+        index_var: idx
+        label: "{{ ip_final_check.results[idx].item.item | default('skipped') }}"
+      when: 
+        - ip_final_check.results[idx] is not skipped
+        - ip_final_check.results[idx].json.count > 0
+        - hostvars[inventory_hostname]['ip_role_for_' + (ip_final_check.results[idx].item.item | replace('-', '_'))] is defined
+        - hostvars[inventory_hostname]['ip_role_for_' + (ip_final_check.results[idx].item.item | replace('-', '_'))] | string | length > 0
+      delegate_to: localhost
+      
+    # ==========================================
+    # ОЧИСТКА УСТАРЕВШИХ IP
+    # ==========================================
+
+    # 10. Получение ID устройства в NetBox
+    - name: Get device ID from NetBox
+      uri:
+        url: "{{ netbox_url }}/api/dcim/devices/?name={{ ansible_facts['nodename'] }}"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Accept: application/json
+      register: device_info
+      delegate_to: localhost
+
+    - name: Set device_id fact
+      set_fact:
+        device_id: "{{ device_info.json.results[0].id }}"
+      when: device_info.json.count > 0
+      delegate_to: localhost
+
+    # 11. Получение всех IP, привязанных к этому устройству в NetBox
+    - name: Get all IP addresses currently assigned to this device in NetBox
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/?device_id={{ device_id }}&limit=0"
+        method: GET
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+          Accept: application/json
+      register: netbox_ips
+      delegate_to: localhost
+      when: device_id is defined
+
+    # 12. Формирование списка актуальных IP на сервере
+    - name: Build list of current IP addresses on server
+      set_fact:
+        current_ip_list: "{{ current_ip_list | default([]) + [hostvars[inventory_hostname]['ansible_' + item.item]['ipv4']['address'] + '/' + item.stdout] }}"
+      loop: "{{ prefix_result.results }}"
+      when: 
+        - item is not skipped
+        - item.stdout is defined
+      delegate_to: localhost
+
+    # 13. Удаление IP из NetBox, которых больше нет на сервере
+    - name: Remove stale IP addresses from NetBox
+      uri:
+        url: "{{ netbox_url }}/api/ipam/ip-addresses/{{ item.id }}/"
+        method: DELETE
+        headers:
+          Authorization: "Token {{ netbox_token }}"
+        status_code:
+          - 204
+      loop: "{{ netbox_ips.json.results | default([]) }}"
+      loop_control:
+        label: "{{ item.address }}"
+      when: 
+        - device_id is defined
+        - netbox_ips.json is defined
+        - netbox_ips.json.results | length > 0
+        - item.address not in (current_ip_list | default([]))
+      delegate_to: localhost
