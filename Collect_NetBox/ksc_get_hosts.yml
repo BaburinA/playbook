@@ -1,0 +1,57 @@
+---
+- name: Получение данных об оборудовании из KSC через REST API
+  hosts: KSC
+#  connection: local
+  gather_facts: no
+
+  vars:
+    ksc_host: "ksc.itopt18.local"   # Имя или IP вашего сервера KSC
+    ksc_port: 13299                 # Порт REST API (обычно 13299)
+    ksc_user: "baburin_ag"               # Учетная запись администратора KSC
+    ksc_pass: "ooM2ufuo022"            # Пароль (лучше использовать Ansible Vault!)
+    output_file: "/tmp/ksc_hosts.json"
+
+  tasks:
+    - name: 1. Аутентификация в KSC REST API и получение токена
+      ansible.builtin.uri:
+        url: "https://{{ ksc_host }}:{{ ksc_port }}/api/v1.0/auth"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ ksc_user }}"
+          password: "{{ ksc_pass }}"
+        validate_certs: no
+        return_content: yes
+        status_code: 200
+      register: auth_response
+
+    - name: 2. Извлечение токена из ответа
+      set_fact:
+        ksc_token: "{{ auth_response.json.token }}"
+
+    - name: 3. Запрос списка хостов с данными инвентаризации
+      ansible.builtin.uri:
+        # $top=1000 увеличивает лимит выдачи, $expand=inventory подтягивает данные об оборудовании
+        url: "https://{{ ksc_host }}:{{ ksc_port }}/api/v1.0/hosts?$top=1000&$expand=inventory"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ ksc_token }}"
+          Accept: "application/json"
+        validate_certs: no
+        return_content: yes
+        status_code: 200
+      register: hosts_response
+
+    - name: 4. Сохранение результата в JSON файл
+      copy:
+        content: "{{ hosts_response.json | to_nice_json }}"
+        dest: "{{ output_file }}"
+      when: hosts_response.json is defined
+
+    - name: 5. Вывод краткой информации в консоль (имя и ОС)
+      debug:
+        msg: "Хост: {{ item.name }} | ОС: {{ item.os | default('Неизвестно') }}"
+      loop: "{{ hosts_response.json.value | default([]) }}"
+      loop_control:
+        label: "{{ item.name }}"
+
