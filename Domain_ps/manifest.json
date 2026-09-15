@@ -1,0 +1,11 @@
+{
+    "script": "INstall_MAX_new_ver.ps1",
+    "scriptType": "powershell",
+    "arguments": "-NoProfile -ExecutionPolicy Bypass -File \"INstall_MAX_new_ver.ps1\"",
+    "runAsSystem": true,
+    "returnCodes": {
+        "success": [0],
+        "reboot": [3010],
+        "error": [1, 2, 1603]
+    }
+}
